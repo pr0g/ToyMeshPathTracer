@@ -26,6 +26,14 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		29FA26A92288713F0066599C /* libtbbmalloc_proxy_debug.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libtbbmalloc_proxy_debug.dylib; path = "../../third-party/tbb/lib/libtbbmalloc_proxy_debug.dylib"; sourceTree = "<group>"; };
+		29FA26AA2288713F0066599C /* libtbb_debug.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libtbb_debug.dylib; path = "../../third-party/tbb/lib/libtbb_debug.dylib"; sourceTree = "<group>"; };
+		29FA26AB2288713F0066599C /* libtbbmalloc.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libtbbmalloc.dylib; path = "../../third-party/tbb/lib/libtbbmalloc.dylib"; sourceTree = "<group>"; };
+		29FA26AC2288713F0066599C /* libtbbmalloc_proxy.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libtbbmalloc_proxy.dylib; path = "../../third-party/tbb/lib/libtbbmalloc_proxy.dylib"; sourceTree = "<group>"; };
+		29FA26AD2288713F0066599C /* libtbb.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libtbb.dylib; path = "../../third-party/tbb/lib/libtbb.dylib"; sourceTree = "<group>"; };
+		29FA26AE2288713F0066599C /* libtbb_preview.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libtbb_preview.dylib; path = "../../third-party/tbb/lib/libtbb_preview.dylib"; sourceTree = "<group>"; };
+		29FA26AF2288713F0066599C /* libtbbmalloc_debug.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libtbbmalloc_debug.dylib; path = "../../third-party/tbb/lib/libtbbmalloc_debug.dylib"; sourceTree = "<group>"; };
+		29FA26B02288713F0066599C /* libtbb_preview_debug.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libtbb_preview_debug.dylib; path = "../../third-party/tbb/lib/libtbb_preview_debug.dylib"; sourceTree = "<group>"; };
 		2BBF7DB222492CB600FCABB2 /* TrimeshTracer */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = TrimeshTracer; sourceTree = BUILT_PRODUCTS_DIR; };
 		2BBF7DC522492D4500FCABB2 /* scene.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = scene.cpp; sourceTree = "<group>"; };
 		2BBF7DC622492D4500FCABB2 /* maths.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = maths.h; sourceTree = "<group>"; };
@@ -49,11 +57,27 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		29FA26A82288713E0066599C /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				29FA26AA2288713F0066599C /* libtbb_debug.dylib */,
+				29FA26B02288713F0066599C /* libtbb_preview_debug.dylib */,
+				29FA26AE2288713F0066599C /* libtbb_preview.dylib */,
+				29FA26AD2288713F0066599C /* libtbb.dylib */,
+				29FA26AF2288713F0066599C /* libtbbmalloc_debug.dylib */,
+				29FA26A92288713F0066599C /* libtbbmalloc_proxy_debug.dylib */,
+				29FA26AC2288713F0066599C /* libtbbmalloc_proxy.dylib */,
+				29FA26AB2288713F0066599C /* libtbbmalloc.dylib */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		2BBF7DA922492CB600FCABB2 = {
 			isa = PBXGroup;
 			children = (
 				2BBF7DB422492CB600FCABB2 /* TrimeshTracer */,
 				2BBF7DB322492CB600FCABB2 /* Products */,
+				29FA26A82288713E0066599C /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -272,6 +296,9 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
+				HEADER_SEARCH_PATHS = /usr/local/Cellar/tbb/2019_U5_1/include;
+				LIBRARY_SEARCH_PATHS = /usr/local/Cellar/tbb/2019_U5_1/lib;
+				OTHER_LDFLAGS = "-ltbb";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -280,6 +307,9 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
+				HEADER_SEARCH_PATHS = /usr/local/Cellar/tbb/2019_U5_1/include;
+				LIBRARY_SEARCH_PATHS = /usr/local/Cellar/tbb/2019_U5_1/lib;
+				OTHER_LDFLAGS = "-ltbb";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;

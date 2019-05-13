@@ -81,6 +81,10 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "data/cube.obj"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "data/suzanne.obj"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>

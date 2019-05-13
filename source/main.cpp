@@ -15,6 +15,9 @@
 // - OBJ file loading
 #include "external/objparser.h"
 
+#include "tbb/parallel_for.h"
+#include "tbb/task_scheduler_init.h"
+#include "tbb/blocked_range2d.h"
 
 // --------------------------------------------------------------------------
 // "ray/path tracing" bits
@@ -155,7 +158,64 @@ struct TraceData
     int screenWidth, screenHeight, samplesPerPixel;
     uint8_t* image;
     const Camera* camera;
-    int rayCount;
+    std::atomic<int> rayCount;
+};
+
+class TraceImageBody {
+public:
+	TraceImageBody(TraceData* traceData)
+		: m_traceData(traceData)
+		, m_invWidth(1.0f / traceData->screenWidth)
+		, m_invHeight(1.0f / traceData->screenHeight)
+	{
+	}
+	
+	void operator()(const tbb::blocked_range2d<uint32_t>& range) const {
+		TraceData& data = *m_traceData;
+		float invWidth = m_invWidth;
+		float invHeight = m_invHeight;
+		uint8_t* image = data.image;
+		
+		int rayCount = 0;
+		for (uint32_t y = range.rows().begin(); y != range.rows().end(); ++y)
+		{
+			uint32_t rngState = y * 9781 + 1;
+			for (uint32_t x = range.cols().begin(); x != range.cols().end(); ++x)
+			{
+				float3 col(0, 0, 0);
+				// we'll trace N slightly jittered rays for each pixel, to get anti-aliasing, loop over them here
+				for (int s = 0; s < data.samplesPerPixel; s++)
+				{
+					// get a ray from camera, and trace it
+					float u = float(x + RandomFloat01(rngState)) * invWidth;
+					float v = float(y + RandomFloat01(rngState)) * invHeight;
+					Ray r = data.camera->GetRay(u, v, rngState);
+					col += Trace(r, 0, rngState, rayCount);
+				}
+				
+				col *= 1.0f / float(data.samplesPerPixel);
+				
+				// simplistic "gamma correction" by just taking a square root of the final color
+				col.x = sqrtf(col.x);
+				col.y = sqrtf(col.y);
+				col.z = sqrtf(col.z);
+				
+				// our image is bytes in 0-255 range, turn our floats into them here and write into the image
+				const uint32_t lookup = (y * data.screenWidth + x) * 4;
+				image[lookup + 0] = uint8_t(saturate(col.x) * 255.0f);
+				image[lookup + 1] = uint8_t(saturate(col.y) * 255.0f);
+				image[lookup + 2] = uint8_t(saturate(col.z) * 255.0f);
+				image[lookup + 3] = 255;
+			}
+		}
+
+		data.rayCount += rayCount;
+	}
+	
+private:
+	TraceData* m_traceData = nullptr;
+	float m_invWidth = 0.0f;
+	float m_invHeight = 0.0f;
 };
 
 static void TraceImage(TraceData& data)
@@ -203,6 +263,9 @@ static void TraceImage(TraceData& data)
 
 int main(int argc, const char** argv)
 {
+	const auto threadCount = tbb::task_scheduler_init::default_num_threads();
+	tbb::task_scheduler_init init(threadCount);
+
     // initialize timer
     stm_setup();
 
@@ -261,7 +324,12 @@ int main(int argc, const char** argv)
     data.image = image;
     data.camera = &camera;
     data.rayCount = 0;
-    TraceImage(data);
+	
+    //TraceImage(data);
+	
+	const uint32_t grainSize = 50;
+	tbb::parallel_for(tbb::blocked_range2d<uint32_t>(
+		0, screenHeight, grainSize, 0, screenWidth, grainSize), TraceImageBody(&data));
 
     double dt = stm_sec(stm_since(t0));
     printf("Rendered scene at %ix%i,%ispp in %.3f s\n", screenWidth, screenHeight, samplesPerPixel, dt);

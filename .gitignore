@@ -7,3 +7,4 @@ output*.png
 project.xcworkspace
 xcschememanagement.plist
 xcuserdata
+DerivedData/
