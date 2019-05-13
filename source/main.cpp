@@ -15,9 +15,13 @@
 // - OBJ file loading
 #include "external/objparser.h"
 
+#include <vector>
+
 #include "tbb/parallel_for.h"
 #include "tbb/task_scheduler_init.h"
 #include "tbb/blocked_range2d.h"
+#include "tbb/scalable_allocator.h"
+#include "tbb/cache_aligned_allocator.h"
 
 // --------------------------------------------------------------------------
 // "ray/path tracing" bits
@@ -242,6 +246,7 @@ static void TraceImage(TraceData& data)
                 Ray r = data.camera->GetRay(u, v, rngState);
                 col += Trace(r, 0, rngState, rayCount);
             }
+
             col *= 1.0f / float(data.samplesPerPixel);
 
             // simplistic "gamma correction" by just taking a square root of the final color
@@ -259,7 +264,6 @@ static void TraceImage(TraceData& data)
     }
     data.rayCount += rayCount;
 }
-
 
 int main(int argc, const char** argv)
 {
@@ -312,7 +316,7 @@ int main(int argc, const char** argv)
     auto camera = Camera(lookfrom, lookat, float3(0, 1, 0), 60, float(screenWidth) / float(screenHeight), aperture, distToFocus);
 
     // create RGBA image for the result
-    uint8_t* image = new uint8_t[screenWidth * screenHeight * 4];
+    std::vector<uint8_t, tbb::cache_aligned_allocator<uint8_t>> image(screenWidth * screenHeight * 4, 0);
 
     // generate the image - run TraceImage
     uint64_t t0 = stm_now();
@@ -321,13 +325,13 @@ int main(int argc, const char** argv)
     data.screenWidth = screenWidth;
     data.screenHeight = screenHeight;
     data.samplesPerPixel = samplesPerPixel;
-    data.image = image;
+    data.image = image.data();
     data.camera = &camera;
     data.rayCount = 0;
 	
-    //TraceImage(data);
+    // TraceImage(data);
 	
-	const uint32_t grainSize = 50;
+	const uint32_t grainSize = 25;
 	tbb::parallel_for(tbb::blocked_range2d<uint32_t>(
 		0, screenHeight, grainSize, 0, screenWidth, grainSize), TraceImageBody(&data));
 
@@ -337,10 +341,7 @@ int main(int argc, const char** argv)
 
     // write resulting image as PNG
     stbi_flip_vertically_on_write(1);
-    stbi_write_png("output.png", screenWidth, screenHeight, 4, image, screenWidth*4);
+    stbi_write_png("output.png", screenWidth, screenHeight, 4, image.data(), screenWidth*4);
 
-    // cleanup and exit
-    delete[] image;
-    CleanupScene();
     return 0;
 }

@@ -16,9 +16,6 @@ struct Triangle
 // (no "objects", "instances" or "materials").
 void InitializeScene(int triangleCount, const Triangle* triangles);
 
-// Cleanup any data or memory that the scene might have allocated.
-void CleanupScene();
-
 // Checks if the ray segment hits a scene. If any triangle is hit by the ray, this
 // function should return information about the closest one.
 //

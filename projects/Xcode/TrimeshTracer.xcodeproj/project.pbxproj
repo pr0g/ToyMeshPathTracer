@@ -298,7 +298,10 @@
 				CODE_SIGN_STYLE = Automatic;
 				HEADER_SEARCH_PATHS = /usr/local/Cellar/tbb/2019_U5_1/include;
 				LIBRARY_SEARCH_PATHS = /usr/local/Cellar/tbb/2019_U5_1/lib;
-				OTHER_LDFLAGS = "-ltbb";
+				OTHER_LDFLAGS = (
+					"-ltbb",
+					"-ltbbmalloc",
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -309,7 +312,10 @@
 				CODE_SIGN_STYLE = Automatic;
 				HEADER_SEARCH_PATHS = /usr/local/Cellar/tbb/2019_U5_1/include;
 				LIBRARY_SEARCH_PATHS = /usr/local/Cellar/tbb/2019_U5_1/lib;
-				OTHER_LDFLAGS = "-ltbb";
+				OTHER_LDFLAGS = (
+					"-ltbb",
+					"-ltbbmalloc",
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;

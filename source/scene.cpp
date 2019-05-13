@@ -1,6 +1,10 @@
 #include "scene.h"
-#include <string.h>
+#include <string>
+#include <vector>
+#include <memory>
 
+#include "tbb/scalable_allocator.h"
+#include "tbb/cache_aligned_allocator.h"
 
 // Checks if one triangle is hit by a ray segment.
 static bool HitTriangle(const Ray& r, const Triangle& tri, float tMin, float tMax, Hit& outHit)
@@ -41,33 +45,33 @@ static bool HitTriangle(const Ray& r, const Triangle& tri, float tMin, float tMa
     return false;
 }
 
-// Scene information: just a copy of the input triangles.
-static int s_TriangleCount;
-static Triangle* s_Triangles;
+struct Scene
+{
+    Scene(int triangleCount, const Triangle* triangles)
+    {
+        m_Triangles.assign(triangles, triangles + triangleCount);
+    }
 
+    // Scene information: just a copy of the input triangles.
+    std::vector<Triangle, tbb::cache_aligned_allocator<Triangle>> m_Triangles;
+};
+
+std::unique_ptr<Scene> scene;
 
 void InitializeScene(int triangleCount, const Triangle* triangles)
 {
-    s_TriangleCount = triangleCount;
-    s_Triangles = new Triangle[triangleCount];
-    memcpy(s_Triangles, triangles, triangleCount * sizeof(triangles[0]));
+    scene = std::make_unique<Scene>(triangleCount, triangles);
 }
-
-void CleanupScene()
-{
-    delete[] s_Triangles;
-}
-
 
 // Check all the triangles in the scene for a hit, and return the closest one.
 int HitScene(const Ray& r, float tMin, float tMax, Hit& outHit)
 {
     float hitMinT = tMax;
     int hitID = -1;
-    for (int i = 0; i < s_TriangleCount; ++i)
+    for (int i = 0; i < scene->m_Triangles.size(); ++i)
     {
         Hit hit;
-        if (HitTriangle(r, s_Triangles[i], tMin, tMax, hit))
+        if (HitTriangle(r, scene->m_Triangles[i], tMin, tMax, hit))
         {
             if (hit.t < hitMinT)
             {
