@@ -331,7 +331,7 @@ int main(int argc, const char** argv)
 	
     // TraceImage(data);
 	
-	const uint32_t grainSize = 25;
+	const uint32_t grainSize = 1; // default grain size
 	tbb::parallel_for(tbb::blocked_range2d<uint32_t>(
 		0, screenHeight, grainSize, 0, screenWidth, grainSize), TraceImageBody(&data));
 
