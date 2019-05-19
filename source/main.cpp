@@ -34,8 +34,8 @@ const float kMaxT = 1.0e7f;
 const int kMaxDepth = 10;
 
 // we have one hardcoded directional light, with this direction and color
-static const glm::vec3 kLightDir = normalize(glm::vec3(-0.7f,1.0f,0.5f));
-static const glm::vec3 kLightColor = glm::vec3(0.7f,0.6f,0.5f);
+static const as::vec3_t kLightDir = as::vec::normalize(as::vec3_t(-0.7f,1.0f,0.5f));
+static const as::vec3_t kLightColor = as::vec3_t(0.7f,0.6f,0.5f);
 
 
 // when a ray "r" has just hit a surface at point "hit", decide what to do about it:
@@ -43,18 +43,18 @@ static const glm::vec3 kLightColor = glm::vec3(0.7f,0.6f,0.5f);
 // - surface albedo ("color") in "attenuation"
 // - new random ray for the next light bounce in "scattered"
 // - illumination from the directional light in "outLightE"
-static bool Scatter(const Ray& r, const Hit& hit, glm::vec3& attenuation, Ray& scattered, glm::vec3& outLightE, uint32_t& rngState, int& inoutRayCount)
+static bool Scatter(const Ray& r, const Hit& hit, as::vec3_t& attenuation, Ray& scattered, as::vec3_t& outLightE, uint32_t& rngState, int& inoutRayCount)
 {
-    outLightE = glm::vec3(0,0,0);
+    outLightE = as::vec3_t(0,0,0);
 
     // model a perfectly diffuse material:
     
     // random point on unit sphere that is tangent to the hit point
-    glm::vec3 target = hit.pos + hit.normal + RandomUnitVector(rngState);
-    scattered = Ray(hit.pos, normalize(target - hit.pos));
+    as::vec3_t target = hit.pos + hit.normal + RandomUnitVector(rngState);
+    scattered = Ray(hit.pos, as::vec::normalize(target - hit.pos));
     
     // make color slightly based on surface normals
-    glm::vec3 albedo = hit.normal * 0.0f + glm::vec3(0.7f,0.7f,0.7f);
+    as::vec3_t albedo = hit.normal * 0.0f + as::vec3_t(0.7f,0.7f,0.7f);
     attenuation = albedo;
     
     // explicit directional light by shooting a shadow ray
@@ -65,10 +65,10 @@ static bool Scatter(const Ray& r, const Hit& hit, glm::vec3& attenuation, Ray& s
     {
         // ray towards the light did not hit anything in the scene, so
         // that means we are not in shadow: compute illumination from it
-        glm::vec3 rdir = r.dir;
+        as::vec3_t rdir = r.dir;
         AssertUnit(rdir);
-        glm::vec3 nl = dot(hit.normal, rdir) < 0 ? hit.normal : -hit.normal;
-        outLightE += albedo * kLightColor * (fmax(0.0f, dot(kLightDir, nl)));
+        as::vec3_t nl = as::vec::dot(hit.normal, rdir) < 0 ? hit.normal : -hit.normal;
+        outLightE += albedo * kLightColor * (fmax(0.0f, as::vec::dot(kLightDir, nl)));
     }
 
     return true;
@@ -76,7 +76,7 @@ static bool Scatter(const Ray& r, const Hit& hit, glm::vec3& attenuation, Ray& s
 
 
 // trace a ray into the scene, and return the final color for it
-static glm::vec3 Trace(const Ray& r, int depth, uint32_t& rngState, int& inoutRayCount)
+static as::vec3_t Trace(const Ray& r, int depth, uint32_t& rngState, int& inoutRayCount)
 {
     ++inoutRayCount;
     Hit hit;
@@ -85,8 +85,8 @@ static glm::vec3 Trace(const Ray& r, int depth, uint32_t& rngState, int& inoutRa
     {
         // ray hits something in the scene
         Ray scattered;
-        glm::vec3 attenuation;
-        glm::vec3 lightE;
+        as::vec3_t attenuation;
+        as::vec3_t lightE;
         if (depth < kMaxDepth && Scatter(r, hit, attenuation, scattered, lightE, rngState, inoutRayCount))
         {
             // we got a new ray bounced from the surface; recursively trace it
@@ -95,21 +95,21 @@ static glm::vec3 Trace(const Ray& r, int depth, uint32_t& rngState, int& inoutRa
         else
         {
             // reached recursion limit, or surface fully absorbed the ray: return black
-            return glm::vec3(0,0,0);
+            return as::vec3_t(0,0,0);
         }
     }
     else
     {
         // ray does not hit anything: return illumination from the sky (just a simple gradient really)
-        glm::vec3 unitDir = r.dir;
+        as::vec3_t unitDir = r.dir;
         float t = 0.5f*(unitDir.y + 1.0f);
-        return ((1.0f - t)*glm::vec3(1.0f, 1.0f, 1.0f) + t * glm::vec3(0.5f, 0.7f, 1.0f)) * 0.5f;
+        return ((1.0f - t)*as::vec3_t(1.0f, 1.0f, 1.0f) + t * as::vec3_t(0.5f, 0.7f, 1.0f)) * 0.5f;
     }
 }
 
 
 // load scene from an .OBJ file
-static bool LoadScene(const char* dataFile, glm::vec3& outBoundsMin, glm::vec3& outBoundsMax)
+static bool LoadScene(const char* dataFile, as::vec3_t& outBoundsMin, as::vec3_t& outBoundsMax)
 {
     ObjFile objFile;
     if (!objParseFile(objFile, dataFile))
@@ -118,8 +118,8 @@ static bool LoadScene(const char* dataFile, glm::vec3& outBoundsMin, glm::vec3& 
         return false;
     }
 
-    outBoundsMin = glm::vec3(+1.0e6f, +1.0e6f, +1.0e6f);
-    outBoundsMax = glm::vec3(-1.0e6f, -1.0e6f, -1.0e6f);
+    outBoundsMin = as::vec3_t(+1.0e6f, +1.0e6f, +1.0e6f);
+    outBoundsMax = as::vec3_t(-1.0e6f, -1.0e6f, -1.0e6f);
 
     int objTriCount = int(objFile.f_size / 9);
     Triangle* tris = new Triangle[objTriCount + 2]; // will add two triangles for the "floor"
@@ -128,27 +128,27 @@ static bool LoadScene(const char* dataFile, glm::vec3& outBoundsMin, glm::vec3& 
         int idx0 = objFile.f[i * 9 + 0] * 3;
         int idx1 = objFile.f[i * 9 + 3] * 3;
         int idx2 = objFile.f[i * 9 + 6] * 3;
-        glm::vec3 v0 = glm::vec3(objFile.v[idx0 + 0], objFile.v[idx0 + 1], objFile.v[idx0 + 2]);
-        glm::vec3 v1 = glm::vec3(objFile.v[idx1 + 0], objFile.v[idx1 + 1], objFile.v[idx1 + 2]);
-        glm::vec3 v2 = glm::vec3(objFile.v[idx2 + 0], objFile.v[idx2 + 1], objFile.v[idx2 + 2]);
+        as::vec3_t v0 = as::vec3_t(objFile.v[idx0 + 0], objFile.v[idx0 + 1], objFile.v[idx0 + 2]);
+        as::vec3_t v1 = as::vec3_t(objFile.v[idx1 + 0], objFile.v[idx1 + 1], objFile.v[idx1 + 2]);
+        as::vec3_t v2 = as::vec3_t(objFile.v[idx2 + 0], objFile.v[idx2 + 1], objFile.v[idx2 + 2]);
         tris[i].v0 = v0;
         tris[i].v1 = v1;
         tris[i].v2 = v2;
-        outBoundsMin = min(outBoundsMin, v0); outBoundsMax = max(outBoundsMax, v0);
-        outBoundsMin = min(outBoundsMin, v1); outBoundsMax = max(outBoundsMax, v1);
-        outBoundsMin = min(outBoundsMin, v2); outBoundsMax = max(outBoundsMax, v2);
+        outBoundsMin = as::vec::min(outBoundsMin, v0); outBoundsMax = as::vec::max(outBoundsMax, v0);
+        outBoundsMin = as::vec::min(outBoundsMin, v1); outBoundsMax = as::vec::max(outBoundsMax, v1);
+        outBoundsMin = as::vec::min(outBoundsMin, v2); outBoundsMax = as::vec::max(outBoundsMax, v2);
     }
 
     // add two triangles that are right "under the scene" and covering larger area than the scene
     // itself, to serve as a "floor"
-    glm::vec3 size = outBoundsMax - outBoundsMin;
-    glm::vec3 extra = size * 0.7f;
-    tris[objTriCount+0].v0 = glm::vec3(outBoundsMin.x-extra.x, outBoundsMin.y, outBoundsMin.z-extra.z);
-    tris[objTriCount+0].v1 = glm::vec3(outBoundsMin.x-extra.x, outBoundsMin.y, outBoundsMax.z+extra.z);
-    tris[objTriCount+0].v2 = glm::vec3(outBoundsMax.x+extra.x, outBoundsMin.y, outBoundsMin.z-extra.z);
-    tris[objTriCount+1].v0 = glm::vec3(outBoundsMin.x-extra.x, outBoundsMin.y, outBoundsMax.z+extra.z);
-    tris[objTriCount+1].v1 = glm::vec3(outBoundsMax.x+extra.x, outBoundsMin.y, outBoundsMax.z+extra.z);
-    tris[objTriCount+1].v2 = glm::vec3(outBoundsMax.x+extra.x, outBoundsMin.y, outBoundsMin.z-extra.z);
+    as::vec3_t size = outBoundsMax - outBoundsMin;
+    as::vec3_t extra = size * 0.7f;
+    tris[objTriCount+0].v0 = as::vec3_t(outBoundsMin.x-extra.x, outBoundsMin.y, outBoundsMin.z-extra.z);
+    tris[objTriCount+0].v1 = as::vec3_t(outBoundsMin.x-extra.x, outBoundsMin.y, outBoundsMax.z+extra.z);
+    tris[objTriCount+0].v2 = as::vec3_t(outBoundsMax.x+extra.x, outBoundsMin.y, outBoundsMin.z-extra.z);
+    tris[objTriCount+1].v0 = as::vec3_t(outBoundsMin.x-extra.x, outBoundsMin.y, outBoundsMax.z+extra.z);
+    tris[objTriCount+1].v1 = as::vec3_t(outBoundsMax.x+extra.x, outBoundsMin.y, outBoundsMax.z+extra.z);
+    tris[objTriCount+1].v2 = as::vec3_t(outBoundsMax.x+extra.x, outBoundsMin.y, outBoundsMin.z-extra.z);
 
     uint64_t t0 = stm_now();
     InitializeScene(objTriCount + 2, tris);
@@ -189,7 +189,7 @@ public:
 			uint32_t rngState = y * 9781 + 1;
 			for (uint32_t x = range.cols().begin(); x != range.cols().end(); ++x)
 			{
-				glm::vec3 col(0.0f, 0.0f, 0.0f);
+				as::vec3_t col(0.0f, 0.0f, 0.0f);
 				// we'll trace N slightly jittered rays for each pixel, to get anti-aliasing, loop over them here
 				for (int s = 0; s < data.samplesPerPixel; s++)
 				{
@@ -260,21 +260,21 @@ int main(int argc, const char** argv)
     }
 
     // load model file and initialize the scene
-    glm::vec3 sceneMin, sceneMax;
+    as::vec3_t sceneMin, sceneMax;
     if (!LoadScene("/Users/tomhultonharrop/Documents/Projects/ray-tracing-interview/data/suzanne.obj", sceneMin, sceneMax))
         return 1;
 
     // place a camera: put it a bit outside scene bounds, looking at the center of it
-    glm::vec3 sceneSize = sceneMax - sceneMin;
-    glm::vec3 sceneCenter = (sceneMin + sceneMax) * 0.5f;
-    glm::vec3 lookfrom = sceneCenter + sceneSize * glm::vec3(0.3f,0.6f,1.2f);
+    as::vec3_t sceneSize = sceneMax - sceneMin;
+    as::vec3_t sceneCenter = (sceneMin + sceneMax) * 0.5f;
+    as::vec3_t lookfrom = sceneCenter + as::vec3_t(0.3f,0.6f,1.2f) * sceneSize;
     if (strstr(argv[4], "sponza.obj") != nullptr) // sponza looks bad when viewed from outside; hardcode camera position
-        lookfrom = glm::vec3(-5.96f, 4.08f, -1.22f);
-    glm::vec3 lookat = sceneCenter + sceneSize * glm::vec3(0.0f, -0.1f, 0.0f);
-    const float distToFocus = length(lookfrom - lookat);
+        lookfrom = as::vec3_t(-5.96f, 4.08f, -1.22f);
+    as::vec3_t lookat = sceneCenter + sceneSize * as::vec3_t(0.0f, -0.1f, 0.0f);
+    const float distToFocus = as::vec::length(lookfrom - lookat);
     const float aperture = 0.03f;
     auto camera = Camera(
-        lookfrom, lookat, glm::vec3(0.0f, 1.0f, 0.0f), 60.0f,
+        lookfrom, lookat, as::vec3_t(0.0f, 1.0f, 0.0f), 60.0f,
         float(screenWidth) / float(screenHeight), aperture, distToFocus);
 
     // create RGBA image for the result

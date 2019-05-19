@@ -8,19 +8,22 @@
 #include <assert.h>
 #include <stdint.h>
 
-#include "glm/glm.hpp"
+//#include "glm/glm.hpp"
+#include "as/math/as-vec.hpp"
+#include "as/math/as-math-ops.hpp"
+#include "as/math/as-math.hpp"
 
 #define kPI 3.1415926f
 
 inline float saturate(float v)
 {
-    return glm::clamp(v, 0.0f, 1.0f);
+    return as::clamp(v, 0.0f, 1.0f);
 }
 
-inline void AssertUnit(const glm::vec3& v)
+inline void AssertUnit(const as::vec3_t& v)
 {
     (void)v;
-    assert(fabsf(glm::length(v) - 1.0f) < 0.01f);
+    assert(fabsf(as::vec::length(v) - 1.0f) < 0.01f);
 }
 
 // --------------------------------------------------------------------------
@@ -30,12 +33,12 @@ inline void AssertUnit(const glm::vec3& v)
 struct Ray
 {
     Ray() {}
-    Ray(const glm::vec3& orig_, const glm::vec3& dir_) : orig(orig_), dir(dir_) { AssertUnit(dir); }
+    Ray(const as::vec3_t& orig_, const as::vec3_t& dir_) : orig(orig_), dir(dir_) { AssertUnit(dir); }
 
-    glm::vec3 pointAt(float t) const { return orig + dir * t; }
+    as::vec3_t pointAt(float t) const { return orig + dir * t; }
 
-    glm::vec3 orig;
-    glm::vec3 dir;
+    as::vec3_t orig;
+    as::vec3_t dir;
 };
 
 // --------------------------------------------------------------------------
@@ -44,8 +47,8 @@ struct Ray
 
 struct Hit
 {
-    glm::vec3 pos;
-    glm::vec3 normal;
+    as::vec3_t pos;
+    as::vec3_t normal;
     float t;
 };
 
@@ -53,8 +56,8 @@ struct Hit
 // random number generator utilities
 
 float RandomFloat01(uint32_t& state);
-glm::vec3 RandomInUnitDisk(uint32_t& state);
-glm::vec3 RandomUnitVector(uint32_t& state);
+as::vec3_t RandomInUnitDisk(uint32_t& state);
+as::vec3_t RandomUnitVector(uint32_t& state);
 
 // --------------------------------------------------------------------------
 // camera
@@ -65,7 +68,7 @@ struct Camera
 
     // vfov is top to bottom in degrees
     Camera(
-        const glm::vec3& lookFrom, const glm::vec3& lookAt, const glm::vec3& vup,
+        const as::vec3_t& lookFrom, const as::vec3_t& lookAt, const as::vec3_t& vup,
         float vfov, float aspect, float aperture, float focusDist)
     {
         lensRadius = aperture * 0.5f;
@@ -73,9 +76,9 @@ struct Camera
         float halfHeight = tanf(theta * 0.5f);
         float halfWidth = aspect * halfHeight;
         origin = lookFrom;
-        w = glm::normalize(lookFrom - lookAt);
-        u = glm::normalize(cross(vup, w));
-        v = cross(w, u);
+        w = as::vec::normalize(lookFrom - lookAt);
+        u = as::vec::normalize(as::vec3::cross(vup, w));
+        v = as::vec3::cross(w, u);
         lowerLeftCorner =
             origin -
             halfWidth * focusDist * u -
@@ -87,21 +90,21 @@ struct Camera
 
     Ray GetRay(float s, float t, uint32_t& state) const
     {
-        glm::vec3 rd = lensRadius * RandomInUnitDisk(state);
-        glm::vec3 offset = u * rd.x + v * rd.y;
+        as::vec3_t rd = lensRadius * RandomInUnitDisk(state);
+        as::vec3_t offset = u * rd.x + v * rd.y;
         return Ray(
             origin + offset,
-            glm::normalize(
+            as::vec::normalize(
                 lowerLeftCorner +
                 s * horizontal +
                 t * vertical -
                 origin - offset));
     }
 
-    glm::vec3 origin;
-    glm::vec3 lowerLeftCorner;
-    glm::vec3 horizontal;
-    glm::vec3 vertical;
-    glm::vec3 u, v, w;
+    as::vec3_t origin;
+    as::vec3_t lowerLeftCorner;
+    as::vec3_t horizontal;
+    as::vec3_t vertical;
+    as::vec3_t u, v, w;
     float lensRadius;
 };
