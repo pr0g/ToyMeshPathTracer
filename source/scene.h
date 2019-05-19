@@ -4,13 +4,11 @@
 
 #include "maths.h"
 
-
 // One triangle: just three vertex positions.
 struct Triangle
 {
-    float3 v0, v1, v2;
+    glm::vec3 v0, v1, v2;
 };
-
 
 // Our scene structure is very simple: just a bunch of triangles and nothing else
 // (no "objects", "instances" or "materials").
