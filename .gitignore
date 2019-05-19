@@ -8,3 +8,4 @@ project.xcworkspace
 xcschememanagement.plist
 xcuserdata
 DerivedData/
+.vscode
