@@ -17,9 +17,6 @@
 
 #include <vector>
 
-#include "glm/glm.hpp"
-#include "glm/gtx/compatibility.hpp"
-
 #include "tbb/parallel_for.h"
 #include "tbb/task_scheduler_init.h"
 #include "tbb/blocked_range2d.h"
@@ -120,6 +117,7 @@ static bool LoadScene(const char* dataFile, glm::vec3& outBoundsMin, glm::vec3& 
         printf("ERROR: failed to load .obj file\n");
         return false;
     }
+
     outBoundsMin = glm::vec3(+1.0e6f, +1.0e6f, +1.0e6f);
     outBoundsMax = glm::vec3(-1.0e6f, -1.0e6f, -1.0e6f);
 
@@ -182,6 +180,8 @@ public:
 		float invWidth = m_invWidth;
 		float invHeight = m_invHeight;
 		uint8_t* image = data.image;
+  
+        const float samplesPerPixelRecip = 1.0f / float(data.samplesPerPixel);
 		
 		int rayCount = 0;
 		for (uint32_t y = range.rows().begin(); y != range.rows().end(); ++y)
@@ -200,7 +200,7 @@ public:
 					col += Trace(r, 0, rngState, rayCount);
 				}
 				
-				col *= 1.0f / float(data.samplesPerPixel);
+				col *= samplesPerPixelRecip;
 				
 				// simplistic "gamma correction" by just taking a square root of the final color
 				col.x = sqrtf(col.x);
@@ -224,49 +224,6 @@ private:
 	float m_invWidth = 0.0f;
 	float m_invHeight = 0.0f;
 };
-
-static void TraceImage(TraceData& data)
-{
-    uint8_t* image = data.image;
-    float invWidth = 1.0f / data.screenWidth;
-    float invHeight = 1.0f / data.screenHeight;
-
-    int rayCount = 0;
-    // go over the image: each pixel row
-    for (uint32_t y = 0; y < data.screenHeight; ++y)
-    {
-        // go over the image: each pixel in the row
-        uint32_t rngState = y * 9781 + 1;
-        for (int x = 0; x < data.screenWidth; ++x)
-        {
-            glm::vec3 col(0, 0, 0);
-            // we'll trace N slightly jittered rays for each pixel, to get anti-aliasing, loop over them here
-            for (int s = 0; s < data.samplesPerPixel; s++)
-            {
-                // get a ray from camera, and trace it
-                float u = float(x + RandomFloat01(rngState)) * invWidth;
-                float v = float(y + RandomFloat01(rngState)) * invHeight;
-                Ray r = data.camera->GetRay(u, v, rngState);
-                col += Trace(r, 0, rngState, rayCount);
-            }
-
-            col *= 1.0f / float(data.samplesPerPixel);
-
-            // simplistic "gamma correction" by just taking a square root of the final color
-            col.x = sqrtf(col.x);
-            col.y = sqrtf(col.y);
-            col.z = sqrtf(col.z);
-
-            // our image is bytes in 0-255 range, turn our floats into them here and write into the image
-            image[0] = uint8_t(saturate(col.x) * 255.0f);
-            image[1] = uint8_t(saturate(col.y) * 255.0f);
-            image[2] = uint8_t(saturate(col.z) * 255.0f);
-            image[3] = 255;
-            image += 4;
-        }
-    }
-    data.rayCount += rayCount;
-}
 
 int main(int argc, const char** argv)
 {
@@ -313,10 +270,12 @@ int main(int argc, const char** argv)
     glm::vec3 lookfrom = sceneCenter + sceneSize * glm::vec3(0.3f,0.6f,1.2f);
     if (strstr(argv[4], "sponza.obj") != nullptr) // sponza looks bad when viewed from outside; hardcode camera position
         lookfrom = glm::vec3(-5.96f, 4.08f, -1.22f);
-    glm::vec3 lookat = sceneCenter + sceneSize * glm::vec3(0,-0.1f,0);
-    float distToFocus = length(lookfrom - lookat);
-    float aperture = 0.03f;
-    auto camera = Camera(lookfrom, lookat, glm::vec3(0, 1, 0), 60, float(screenWidth) / float(screenHeight), aperture, distToFocus);
+    glm::vec3 lookat = sceneCenter + sceneSize * glm::vec3(0.0f, -0.1f, 0.0f);
+    const float distToFocus = length(lookfrom - lookat);
+    const float aperture = 0.03f;
+    auto camera = Camera(
+        lookfrom, lookat, glm::vec3(0.0f, 1.0f, 0.0f), 60.0f,
+        float(screenWidth) / float(screenHeight), aperture, distToFocus);
 
     // create RGBA image for the result
     std::vector<uint8_t, tbb::cache_aligned_allocator<uint8_t>> image(screenWidth * screenHeight * 4, 0);
@@ -331,8 +290,6 @@ int main(int argc, const char** argv)
     data.image = image.data();
     data.camera = &camera;
     data.rayCount = 0;
-	
-    // TraceImage(data);
 	
 	const uint32_t grainSize = 10000; // default grain size
 	tbb::parallel_for(tbb::blocked_range2d<uint32_t>(
