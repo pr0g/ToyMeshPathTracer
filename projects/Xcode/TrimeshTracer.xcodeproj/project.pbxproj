@@ -26,6 +26,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		298984FE228FF4270061C57A /* rtm */ = {isa = PBXFileReference; lastKnownFileType = folder; path = rtm; sourceTree = "<group>"; };
 		29FA26A92288713F0066599C /* libtbbmalloc_proxy_debug.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libtbbmalloc_proxy_debug.dylib; path = "../../third-party/tbb/lib/libtbbmalloc_proxy_debug.dylib"; sourceTree = "<group>"; };
 		29FA26AA2288713F0066599C /* libtbb_debug.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libtbb_debug.dylib; path = "../../third-party/tbb/lib/libtbb_debug.dylib"; sourceTree = "<group>"; };
 		29FA26AB2288713F0066599C /* libtbbmalloc.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libtbbmalloc.dylib; path = "../../third-party/tbb/lib/libtbbmalloc.dylib"; sourceTree = "<group>"; };
@@ -106,6 +107,7 @@
 		2BBF7DCD22492D5700FCABB2 /* external */ = {
 			isa = PBXGroup;
 			children = (
+				298984FE228FF4270061C57A /* rtm */,
 				2BBF7DE2224A6E8D00FCABB2 /* objparser.cpp */,
 				2BBF7DE1224A6E8D00FCABB2 /* objparser.h */,
 				2BBF7DE3224A6E8D00FCABB2 /* sokol_time.h */,
@@ -295,8 +297,12 @@
 		2BBF7DBA22492CB600FCABB2 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_X86_VECTOR_INSTRUCTIONS = default;
 				CODE_SIGN_STYLE = Automatic;
-				HEADER_SEARCH_PATHS = /usr/local/Cellar/tbb/2019_U5_1/include;
+				HEADER_SEARCH_PATHS = (
+					/usr/local/Cellar/tbb/2019_U5_1/include,
+					../../source/external,
+				);
 				LIBRARY_SEARCH_PATHS = /usr/local/Cellar/tbb/2019_U5_1/lib;
 				OTHER_LDFLAGS = (
 					"-ltbb",
@@ -309,8 +315,12 @@
 		2BBF7DBB22492CB600FCABB2 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_X86_VECTOR_INSTRUCTIONS = default;
 				CODE_SIGN_STYLE = Automatic;
-				HEADER_SEARCH_PATHS = /usr/local/Cellar/tbb/2019_U5_1/include;
+				HEADER_SEARCH_PATHS = (
+					/usr/local/Cellar/tbb/2019_U5_1/include,
+					../../source/external,
+				);
 				LIBRARY_SEARCH_PATHS = /usr/local/Cellar/tbb/2019_U5_1/lib;
 				OTHER_LDFLAGS = (
 					"-ltbb",

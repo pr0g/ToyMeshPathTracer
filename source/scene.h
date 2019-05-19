@@ -4,12 +4,20 @@
 
 #include "maths.h"
 
+#include "rtm/vector4f.h"
 
 // One triangle: just three vertex positions.
 struct Triangle
 {
-    float3 v0, v1, v2;
+    rtm::vector4f v0, v1, v2;
 };
+
+//struct Triangles
+//{
+//    float vx[4];
+//    float vy[4];
+//    float vz[4];
+//};
 
 
 // Our scene structure is very simple: just a bunch of triangles and nothing else
