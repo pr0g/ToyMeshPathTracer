@@ -3,7 +3,6 @@
 #include "maths.h"
 #include "scene.h"
 
-
 // Include external libraries:
 // - PNG writing
 #define STBI_MSC_SECURE_CRT
@@ -19,7 +18,7 @@
 
 #include "tbb/parallel_for.h"
 #include "tbb/task_scheduler_init.h"
-#include "tbb/blocked_range2d.h"
+#include "tbb/blocked_range.h"
 #include "tbb/scalable_allocator.h"
 #include "tbb/cache_aligned_allocator.h"
 
@@ -37,7 +36,6 @@ const int kMaxDepth = 10;
 static const glm::vec3 kLightDir = normalize(glm::vec3(-0.7f,1.0f,0.5f));
 static const glm::vec3 kLightColor = glm::vec3(0.7f,0.6f,0.5f);
 
-
 // when a ray "r" has just hit a surface at point "hit", decide what to do about it:
 // in our very simple case, we assume the surface is perfectly diffuse, so we'll return:
 // - surface albedo ("color") in "attenuation"
@@ -48,15 +46,15 @@ static bool Scatter(const Ray& r, const Hit& hit, glm::vec3& attenuation, Ray& s
     outLightE = glm::vec3(0,0,0);
 
     // model a perfectly diffuse material:
-    
+
     // random point on unit sphere that is tangent to the hit point
     glm::vec3 target = hit.pos + hit.normal + RandomUnitVector(rngState);
     scattered = Ray(hit.pos, normalize(target - hit.pos));
-    
+
     // make color slightly based on surface normals
     glm::vec3 albedo = hit.normal * 0.0f + glm::vec3(0.7f,0.7f,0.7f);
     attenuation = albedo;
-    
+
     // explicit directional light by shooting a shadow ray
     ++inoutRayCount;
     Hit lightHit;
@@ -73,7 +71,6 @@ static bool Scatter(const Ray& r, const Hit& hit, glm::vec3& attenuation, Ray& s
 
     return true;
 }
-
 
 // trace a ray into the scene, and return the final color for it
 static glm::vec3 Trace(const Ray& r, int depth, uint32_t& rngState, int& inoutRayCount)
@@ -102,11 +99,10 @@ static glm::vec3 Trace(const Ray& r, int depth, uint32_t& rngState, int& inoutRa
     {
         // ray does not hit anything: return illumination from the sky (just a simple gradient really)
         glm::vec3 unitDir = r.dir;
-        float t = 0.5f*(unitDir.y + 1.0f);
-        return ((1.0f - t)*glm::vec3(1.0f, 1.0f, 1.0f) + t * glm::vec3(0.5f, 0.7f, 1.0f)) * 0.5f;
+        float t = 0.5f * (unitDir.y + 1.0f);
+        return ((1.0f - t) * glm::vec3(1.0f, 1.0f, 1.0f) + t * glm::vec3(0.5f, 0.7f, 1.0f)) * 0.5f;
     }
 }
-
 
 // load scene from an .OBJ file
 static bool LoadScene(const char* dataFile, glm::vec3& outBoundsMin, glm::vec3& outBoundsMax)
@@ -168,67 +164,62 @@ struct TraceData
 
 class TraceImageBody {
 public:
-	TraceImageBody(TraceData* traceData)
-		: m_traceData(traceData)
-		, m_invWidth(1.0f / traceData->screenWidth)
-		, m_invHeight(1.0f / traceData->screenHeight)
-	{
-	}
-	
-	void operator()(const tbb::blocked_range2d<uint32_t>& range) const {
-		TraceData& data = *m_traceData;
-		float invWidth = m_invWidth;
-		float invHeight = m_invHeight;
-		uint8_t* image = data.image;
-  
-        const float samplesPerPixelRecip = 1.0f / float(data.samplesPerPixel);
-		
-		int rayCount = 0;
-		for (uint32_t y = range.rows().begin(); y != range.rows().end(); ++y)
-		{
-			uint32_t rngState = y * 9781 + 1;
-			for (uint32_t x = range.cols().begin(); x != range.cols().end(); ++x)
-			{
-				glm::vec3 col(0.0f, 0.0f, 0.0f);
-				// we'll trace N slightly jittered rays for each pixel, to get anti-aliasing, loop over them here
-				for (int s = 0; s < data.samplesPerPixel; s++)
-				{
-					// get a ray from camera, and trace it
-					float u = float(x + RandomFloat01(rngState)) * invWidth;
-					float v = float(y + RandomFloat01(rngState)) * invHeight;
-					Ray r = data.camera->GetRay(u, v, rngState);
-					col += Trace(r, 0, rngState, rayCount);
-				}
-				
-				col *= samplesPerPixelRecip;
-				
-				// simplistic "gamma correction" by just taking a square root of the final color
-				col.x = sqrtf(col.x);
-				col.y = sqrtf(col.y);
-				col.z = sqrtf(col.z);
-				
-				// our image is bytes in 0-255 range, turn our floats into them here and write into the image
-				const uint32_t lookup = (y * data.screenWidth + x) * 4;
-				image[lookup + 0] = uint8_t(saturate(col.x) * 255.0f);
-				image[lookup + 1] = uint8_t(saturate(col.y) * 255.0f);
-				image[lookup + 2] = uint8_t(saturate(col.z) * 255.0f);
-				image[lookup + 3] = 255;
-			}
-		}
+    TraceImageBody(TraceData* traceData)
+        : m_traceData(traceData)
+    {
+    }
 
-		data.rayCount += rayCount;
-	}
-	
+    void operator()(const tbb::blocked_range<uint32_t>& range) const {
+        TraceData& data = *m_traceData;
+        uint8_t* image = data.image;
+
+        float invWidth = 1.0f / data.screenWidth;
+        float invHeight = 1.0f / data.screenHeight;
+
+        int rayCount = 0;
+        for (uint32_t y = range.begin(); y != range.end(); ++y)
+        {
+            uint32_t rngState = y * 9781 + 1;
+            for (uint32_t x = 0; x < data.screenWidth; ++x)
+            {
+                glm::vec3 col(0.0f, 0.0f, 0.0f);
+                // we'll trace N slightly jittered rays for each pixel, to get anti-aliasing, loop over them here
+                for (int s = 0; s < data.samplesPerPixel; s++)
+                {
+                    // get a ray from camera, and trace it
+                    float u = float(x + RandomFloat01(rngState)) * invWidth;
+                    float v = float(y + RandomFloat01(rngState)) * invHeight;
+                    Ray r = data.camera->GetRay(u, v, rngState);
+                    col += Trace(r, 0, rngState, rayCount);
+                }
+
+                col *= 1.0f / float(data.samplesPerPixel);
+
+                // simplistic "gamma correction" by just taking a square root of the final color
+                col.x = sqrtf(col.x);
+                col.y = sqrtf(col.y);
+                col.z = sqrtf(col.z);
+
+                // our image is bytes in 0-255 range, turn our floats into them here and write into the image
+                const uint32_t lookup = (y * data.screenWidth + x) * 4;
+                image[lookup + 0] = uint8_t(saturate(col.x) * 255.0f);
+                image[lookup + 1] = uint8_t(saturate(col.y) * 255.0f);
+                image[lookup + 2] = uint8_t(saturate(col.z) * 255.0f);
+                image[lookup + 3] = 255;
+            }
+        }
+
+        data.rayCount += rayCount;
+    }
+
 private:
-	TraceData* m_traceData = nullptr;
-	float m_invWidth = 0.0f;
-	float m_invHeight = 0.0f;
+    TraceData* m_traceData = nullptr;
 };
 
 int main(int argc, const char** argv)
 {
-	const auto threadCount = tbb::task_scheduler_init::default_num_threads();
-	tbb::task_scheduler_init init(threadCount);
+    const auto threadCount = tbb::task_scheduler_init::default_num_threads();
+    tbb::task_scheduler_init init(threadCount);
 
     // initialize timer
     stm_setup();
@@ -290,10 +281,10 @@ int main(int argc, const char** argv)
     data.image = image.data();
     data.camera = &camera;
     data.rayCount = 0;
-	
-	const uint32_t grainSize = 10000; // default grain size
-	tbb::parallel_for(tbb::blocked_range2d<uint32_t>(
-		0, screenHeight, grainSize, 0, screenWidth, grainSize), TraceImageBody(&data));
+
+    const uint32_t grainSize = 1; // default grain size
+    tbb::parallel_for(tbb::blocked_range<uint32_t>(
+        0, screenHeight, grainSize), TraceImageBody(&data));
 
     double dt = stm_sec(stm_since(t0));
     printf("Rendered scene at %ix%i,%ispp in %.3f s\n", screenWidth, screenHeight, samplesPerPixel, dt);
