@@ -3,7 +3,8 @@
 #include <vector>
 #include <memory>
 
-#include "tbb/scalable_allocator.h"
+#include "tbb/parallel_reduce.h"
+#include "tbb/blocked_range.h"
 #include "tbb/cache_aligned_allocator.h"
 
 // Checks if one triangle is hit by a ray segment.
@@ -63,24 +64,74 @@ void InitializeScene(int triangleCount, const Triangle* triangles)
     scene = std::make_unique<Scene>(triangleCount, triangles);
 }
 
-// Check all the triangles in the scene for a hit, and return the closest one.
-int HitScene(const Ray& r, float tMin, float tMax, Hit& outHit)
+struct HitSceneBody
 {
-    float hitMinT = tMax;
-    int hitID = -1;
-    for (int i = 0; i < scene->m_Triangles.size(); ++i)
+    HitSceneBody(
+        const Triangle* triangles, const Ray& ray, float tMin, float tMax)
+        : m_triangles(triangles)
+        , m_tMin(tMin)
+        , m_tMax(tMax)
+        , m_hitMinT(tMax)
+        , m_hitId(-1)
+        , m_ray(&ray) {}
+
+    void operator()(const tbb::blocked_range<int>& range)
     {
-        Hit hit;
-        if (HitTriangle(r, scene->m_Triangles[i], tMin, tMax, hit))
+        const Ray* ray = m_ray;
+        const Triangle* triangles = m_triangles;
+
+        for (int i = range.begin(); i != range.end(); ++i)
         {
-            if (hit.t < hitMinT)
+            Hit hit;
+            if (HitTriangle(*ray, triangles[i], m_tMin, m_tMax, hit))
             {
-                hitMinT = hit.t;
-                hitID = i;
-                outHit = hit;
+                if (hit.t < m_hitMinT)
+                {
+                    m_hitMinT = hit.t;
+                    m_hitId = i;
+                    m_outHit = hit;
+                }
             }
         }
     }
 
-    return hitID;
+    HitSceneBody(const HitSceneBody& hitScene, tbb::split)
+        : m_triangles(hitScene.m_triangles)
+        , m_ray(hitScene.m_ray)
+        , m_tMin(hitScene.m_tMin)
+        , m_tMax(hitScene.m_tMax)
+        , m_hitId(-1)
+        , m_hitMinT(hitScene.m_tMax) {}
+
+    void join(const HitSceneBody& hitScene)
+    {
+        if (hitScene.m_hitMinT < m_hitMinT)
+        {
+            m_hitMinT = hitScene.m_hitMinT;
+            m_hitId = hitScene.m_hitId;
+            m_outHit = hitScene.m_outHit;
+        }
+    }
+
+    int m_hitId = -1;
+    float m_tMin = 0.0f;
+    float m_tMax = 0.0f;
+    float m_hitMinT;
+    const Ray* m_ray;
+    const Triangle* m_triangles = nullptr;
+    Hit m_outHit;
+};
+
+// Check all the triangles in the scene for a hit, and return the closest one.
+int HitScene(const Ray& r, float tMin, float tMax, Hit& outHit)
+{
+    auto hitBody = HitSceneBody(
+        scene->m_Triangles.data(), r, tMin, tMax);
+
+    const uint32_t grainSize = 10000; // disable threading
+    tbb::parallel_reduce(tbb::blocked_range<int>(
+        0, (int)scene->m_Triangles.size(), grainSize), hitBody);
+
+    outHit = hitBody.m_outHit;
+    return hitBody.m_hitId;
 }

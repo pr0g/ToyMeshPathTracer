@@ -303,19 +303,20 @@
 					AS_COL_MAJOR,
 				);
 				HEADER_SEARCH_PATHS = (
-					/usr/local/Cellar/tbb/2019_U5_1/include,
+					/Users/tomhultonharrop/Downloads/tbb2019_20190410oss_mac/tbb2019_20190410oss/include,
 					../../source/external,
 					../../source/external/as,
 				);
-				LIBRARY_SEARCH_PATHS = /usr/local/Cellar/tbb/2019_U5_1/lib;
+				LD_RUNPATH_SEARCH_PATHS = /Users/tomhultonharrop/Downloads/tbb2019_20190410oss_mac/tbb2019_20190410oss/lib;
+				LIBRARY_SEARCH_PATHS = /Users/tomhultonharrop/Downloads/tbb2019_20190410oss_mac/tbb2019_20190410oss/lib;
 				OTHER_CFLAGS = "";
 				OTHER_CPLUSPLUSFLAGS = (
 					"-ffast-math",
 					"$(OTHER_CFLAGS)",
 				);
 				OTHER_LDFLAGS = (
-					"-ltbb",
 					"-ltbbmalloc",
+					"-ltbb",
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
@@ -330,19 +331,20 @@
 					AS_COL_MAJOR,
 				);
 				HEADER_SEARCH_PATHS = (
-					/usr/local/Cellar/tbb/2019_U5_1/include,
+					/Users/tomhultonharrop/Downloads/tbb2019_20190410oss_mac/tbb2019_20190410oss/include,
 					../../source/external,
 					../../source/external/as,
 				);
-				LIBRARY_SEARCH_PATHS = /usr/local/Cellar/tbb/2019_U5_1/lib;
+				LD_RUNPATH_SEARCH_PATHS = /Users/tomhultonharrop/Downloads/tbb2019_20190410oss_mac/tbb2019_20190410oss/lib;
+				LIBRARY_SEARCH_PATHS = /Users/tomhultonharrop/Downloads/tbb2019_20190410oss_mac/tbb2019_20190410oss/lib;
 				OTHER_CFLAGS = "";
 				OTHER_CPLUSPLUSFLAGS = (
 					"-ffast-math",
 					"$(OTHER_CFLAGS)",
 				);
 				OTHER_LDFLAGS = (
-					"-ltbb",
 					"-ltbbmalloc",
+					"-ltbb",
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
