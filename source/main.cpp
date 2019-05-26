@@ -45,7 +45,7 @@ static Ray Scatter(
     const Ray& r, const Hit& hit, glm::vec3& outAttenuation,
     glm::vec3& outLightE, uint32_t& rngState, int& inoutRayCount)
 {
-    outLightE = glm::vec3(0.0f);
+    outLightE = glm::vec3 { 0.0f };
 
     // model a perfectly diffuse material:
 
@@ -85,7 +85,7 @@ static glm::vec3 Trace(
     thread_local IntermediateScatterResult scatteredResults[kMaxDepth];
 
     int depth = 0;
-    glm::vec3 color {0.0f};
+    glm::vec3 color { 0.0f };
     while (depth < kMaxDepth)
     {
         ++inoutRayCount;
@@ -180,35 +180,41 @@ class TraceImageBody {
 public:
     TraceImageBody(TraceData* traceData)
         : m_traceData(traceData)
+        , m_invWidth(1.0f / traceData->screenWidth)
+        , m_invHeight(1.0f / traceData->screenHeight)
+        , m_samplesPerPixelRecip(1.0f / static_cast<float>(traceData->samplesPerPixel))
     {
     }
 
-    void operator()(const tbb::blocked_range<uint32_t>& range) const {
+    void operator()(const tbb::blocked_range<int64_t>& range) const {
         TraceData& data = *m_traceData;
         uint8_t* image = data.image;
 
-        float invWidth = 1.0f / data.screenWidth;
-        float invHeight = 1.0f / data.screenHeight;
+        const float invWidth = m_invWidth;
+        const float invHeight = m_invHeight;
+        const float samplesPerPixelRecip = m_samplesPerPixelRecip;
 
         int rayCount = 0;
-        for (uint32_t y = range.begin(); y != range.end(); ++y)
+        for (int64_t y = range.begin(); y != range.end(); ++y)
         {
-            uint32_t rngState = y * 9781 + 1;
-            for (uint32_t x = 0; x < data.screenWidth; ++x)
+            uint32_t rngState = static_cast<uint32_t>(y) * 9781 + 1;
+            for (int64_t x = 0; x < data.screenWidth; ++x)
             {
-                glm::vec3 col(0.0f);
+                glm::vec3 col { 0.0f };
                 // we'll trace N slightly jittered rays for each pixel, to get anti-aliasing, loop over them here
-                for (int s = 0; s < data.samplesPerPixel; s++)
+                for (int64_t s = 0; s < data.samplesPerPixel; s++)
                 {
                     // get a ray from camera, and trace it
-                    float u = float(x + RandomFloat01(rngState)) * invWidth;
-                    float v = float(y + RandomFloat01(rngState)) * invHeight;
-                    Ray ray = data.camera->GetRay(u, v, rngState);
+                    const Ray ray =
+                        data.camera->GetRay(
+                            (static_cast<float>(x) + RandomFloat01(rngState)) * invWidth,
+                            (static_cast<float>(y) + RandomFloat01(rngState)) * invHeight,
+                            rngState);
 
                     col += Trace(ray, rngState, rayCount);
                 }
 
-                col *= 1.0f / float(data.samplesPerPixel);
+                col *= samplesPerPixelRecip;
 
                 // simplistic "gamma correction" by just taking a square root of the final color
                 col.x = sqrtf(col.x);
@@ -216,7 +222,7 @@ public:
                 col.z = sqrtf(col.z);
 
                 // our image is bytes in 0-255 range, turn our floats into them here and write into the image
-                const uint32_t lookup = (y * data.screenWidth + x) * 4;
+                const int64_t lookup = (y * data.screenWidth + x) * 4;
                 image[lookup + 0] = uint8_t(saturate(col.x) * 255.0f);
                 image[lookup + 1] = uint8_t(saturate(col.y) * 255.0f);
                 image[lookup + 2] = uint8_t(saturate(col.z) * 255.0f);
@@ -229,6 +235,9 @@ public:
 
 private:
     TraceData* m_traceData = nullptr;
+    float m_invWidth;
+    float m_invHeight;
+    float m_samplesPerPixelRecip;
 };
 
 int main(int argc, const char** argv)
@@ -284,7 +293,8 @@ int main(int argc, const char** argv)
         float(screenWidth) / float(screenHeight), aperture, distToFocus);
 
     // create RGBA image for the result
-    std::vector<uint8_t, tbb::cache_aligned_allocator<uint8_t>> image(screenWidth * screenHeight * 4, 0);
+    std::vector<uint8_t, tbb::cache_aligned_allocator<uint8_t>> image(
+        screenWidth * screenHeight * 4, 0);
 
     // generate the image - run TraceImage
     uint64_t t0 = stm_now();
@@ -298,12 +308,15 @@ int main(int argc, const char** argv)
     data.rayCount = 0;
 
     const uint32_t grainSize = 1; // default grain size
-    tbb::parallel_for(tbb::blocked_range<uint32_t>(
+    tbb::parallel_for(tbb::blocked_range<int64_t>(
         0, screenHeight, grainSize), TraceImageBody(&data));
 
-    double dt = stm_sec(stm_since(t0));
-    printf("Rendered scene at %ix%i,%ispp in %.3f s\n", screenWidth, screenHeight, samplesPerPixel, dt);
-    printf("- %.1f K Rays, %.1f K Rays/s\n", data.rayCount/1000.0, data.rayCount/1000.0/dt);
+    const double dt = stm_sec(stm_since(t0));
+
+    printf("Rendered scene at %ix%i,%ispp in %.3f s\n",
+        screenWidth, screenHeight, samplesPerPixel, dt);
+    printf("- %.1f K Rays, %.1f K Rays/s\n",
+        data.rayCount/1000.0, data.rayCount/1000.0/dt);
 
     // write resulting image as PNG
     stbi_flip_vertically_on_write(1);
