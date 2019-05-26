@@ -41,19 +41,17 @@ static const glm::vec3 kLightColor = glm::vec3(0.7f,0.6f,0.5f);
 // - surface albedo ("color") in "attenuation"
 // - new random ray for the next light bounce in "scattered"
 // - illumination from the directional light in "outLightE"
-static bool Scatter(const Ray& r, const Hit& hit, glm::vec3& attenuation, Ray& scattered, glm::vec3& outLightE, uint32_t& rngState, int& inoutRayCount)
+static Ray Scatter(
+    const Ray& r, const Hit& hit, glm::vec3& outAttenuation,
+    glm::vec3& outLightE, uint32_t& rngState, int& inoutRayCount)
 {
-    outLightE = glm::vec3(0,0,0);
+    outLightE = glm::vec3(0.0f);
 
     // model a perfectly diffuse material:
 
-    // random point on unit sphere that is tangent to the hit point
-    glm::vec3 target = hit.pos + hit.normal + RandomUnitVector(rngState);
-    scattered = Ray(hit.pos, normalize(target - hit.pos));
-
     // make color slightly based on surface normals
-    glm::vec3 albedo = hit.normal * 0.0f + glm::vec3(0.7f,0.7f,0.7f);
-    attenuation = albedo;
+    glm::vec3 albedo = glm::vec3(0.7f);
+    outAttenuation = albedo;
 
     // explicit directional light by shooting a shadow ray
     ++inoutRayCount;
@@ -69,39 +67,55 @@ static bool Scatter(const Ray& r, const Hit& hit, glm::vec3& attenuation, Ray& s
         outLightE += albedo * kLightColor * (fmax(0.0f, dot(kLightDir, nl)));
     }
 
-    return true;
+    // random point on unit sphere that is tangent to the hit point
+    glm::vec3 target = hit.pos + hit.normal + RandomUnitVector(rngState);
+    return Ray(hit.pos, normalize(target - hit.pos));
 }
 
-// trace a ray into the scene, and return the final color for it
-static glm::vec3 Trace(const Ray& r, int depth, uint32_t& rngState, int& inoutRayCount)
+struct IntermediateScatterResult
 {
-    ++inoutRayCount;
-    Hit hit;
-    int id = HitScene(r, kMinT, kMaxT, hit);
-    if (id != -1)
+    glm::vec3 light;
+    glm::vec3 attenuation;
+};
+
+// trace a ray into the scene, and return the final color for it
+static glm::vec3 Trace(
+    Ray ray, uint32_t& rngState, int& inoutRayCount)
+{
+    thread_local IntermediateScatterResult scatteredResults[kMaxDepth];
+
+    int depth = 0;
+    glm::vec3 color {0.0f};
+    while (depth < kMaxDepth)
     {
+        ++inoutRayCount;
+        Hit hit;
+        int id = HitScene(ray, kMinT, kMaxT, hit);
         // ray hits something in the scene
-        Ray scattered;
-        glm::vec3 attenuation;
-        glm::vec3 lightE;
-        if (depth < kMaxDepth && Scatter(r, hit, attenuation, scattered, lightE, rngState, inoutRayCount))
+        if (id != -1)
         {
-            // we got a new ray bounced from the surface; recursively trace it
-            return lightE + attenuation * Trace(scattered, depth+1, rngState, inoutRayCount);
+            ray = Scatter(
+                ray, hit, scatteredResults[depth].attenuation,
+                scatteredResults[depth].light, rngState, inoutRayCount);
+
+            ++depth;
         }
         else
         {
-            // reached recursion limit, or surface fully absorbed the ray: return black
-            return glm::vec3(0,0,0);
+            // ray does not hit anything: return illumination from the sky (just a simple gradient really)
+            float t = 0.5f * (ray.dir.y + 1.0f);
+            color = ((1.0f - t) * glm::vec3(1.0f) + t * glm::vec3(0.5f, 0.7f, 1.0f)) * 0.5f;
+            break;
         }
     }
-    else
+    
+    for (int i = depth - 1; i >= 0; --i)
     {
-        // ray does not hit anything: return illumination from the sky (just a simple gradient really)
-        glm::vec3 unitDir = r.dir;
-        float t = 0.5f * (unitDir.y + 1.0f);
-        return ((1.0f - t) * glm::vec3(1.0f, 1.0f, 1.0f) + t * glm::vec3(0.5f, 0.7f, 1.0f)) * 0.5f;
+        color = scatteredResults[i].light +
+            scatteredResults[i].attenuation * color;
     }
+
+    return color;
 }
 
 // load scene from an .OBJ file
@@ -182,15 +196,16 @@ public:
             uint32_t rngState = y * 9781 + 1;
             for (uint32_t x = 0; x < data.screenWidth; ++x)
             {
-                glm::vec3 col(0.0f, 0.0f, 0.0f);
+                glm::vec3 col(0.0f);
                 // we'll trace N slightly jittered rays for each pixel, to get anti-aliasing, loop over them here
                 for (int s = 0; s < data.samplesPerPixel; s++)
                 {
                     // get a ray from camera, and trace it
                     float u = float(x + RandomFloat01(rngState)) * invWidth;
                     float v = float(y + RandomFloat01(rngState)) * invHeight;
-                    Ray r = data.camera->GetRay(u, v, rngState);
-                    col += Trace(r, 0, rngState, rayCount);
+                    Ray ray = data.camera->GetRay(u, v, rngState);
+
+                    col += Trace(ray, rngState, rayCount);
                 }
 
                 col *= 1.0f / float(data.samplesPerPixel);
