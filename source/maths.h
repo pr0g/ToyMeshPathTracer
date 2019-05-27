@@ -9,6 +9,7 @@
 #include <stdint.h>
 
 #include "glm/glm.hpp"
+#include "glm/gtc/epsilon.hpp"
 
 #define kPI 3.1415926f
 
@@ -47,6 +48,22 @@ struct Hit
     glm::vec3 pos;
     glm::vec3 normal;
     float t;
+};
+
+// --------------------------------------------------------------------------
+// one triangle: three vertex positions.
+struct Triangle
+{
+    glm::vec3 v0, v1, v2;
+};
+
+struct Aabb
+{
+    glm::vec3 min;
+    glm::vec3 max;
+    
+    glm::vec3 center() const { return (min + max) * 0.5f; }
+    glm::vec3 dimensions() const { return max - min; }
 };
 
 // --------------------------------------------------------------------------
@@ -105,3 +122,51 @@ struct Camera
     glm::vec3 u, v, w;
     float lensRadius;
 };
+
+// need ray box intersection
+// need triangle box intersection
+
+// Intersect ray R(t) = p + t*d against AABB a. When intersecting,
+// return intersection distance tmin and point q of intersection
+inline bool RayIntersectAabb(
+    const Ray& ray, const Aabb& aabb, float &tmin, glm::vec3& q)
+{
+    tmin = 0.0f;          // set to -FLT_MAX to get first hit on line
+    float tmax = FLT_MAX; // set to max distance ray can travel (for segment)
+
+    // For all three slabs
+    for (int i = 0; i < 3; i++) {
+        if (fabsf(ray.dir[i]) < /*EPSILON*/0.001f) {
+            // Ray is parallel to slab. No hit if origin not within slab
+            if (ray.orig[i] < aabb.min[i] || ray.orig[i] > aabb.max[i]) return 0;
+        } else {
+            // Compute intersection t value of ray with near and far plane of slab
+            float ood = 1.0f / ray.dir[i];
+            float t1 = (aabb.min[i] - ray.orig[i]) * ood;
+            float t2 = (aabb.max[i] - ray.orig[i]) * ood;
+            // Make t1 be intersection with near plane, t2 with far plane
+            if (t1 > t2)
+            {
+                std::swap(t1, t2);
+            }
+            // Compute the intersection of slab intersections intervals
+            tmin = glm::min(tmin, t1);
+            tmax = glm::max(tmax, t2);
+            // Exit with no collision as soon as slab intersection becomes empty
+            if (tmin > tmax)
+            {
+                return false;
+            }
+        }
+    }
+    // Ray intersects all 3 slabs. Return point (q) and intersection t value (tmin)
+    q = ray.orig + ray.dir * tmin;
+    return 1;
+}
+
+bool PlaneIntersectAabb(
+    const glm::vec3& normal, const glm::vec3& vert, const glm::vec3& maxbox);
+
+bool TriangleIntersectAabb(
+    const glm::vec3& boxcenter, const glm::vec3& boxhalfsize,
+    const Triangle& triangle);

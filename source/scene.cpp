@@ -45,6 +45,8 @@ static bool HitTriangle(const Ray& r, const Triangle& tri, float tMin, float tMa
 
 Scene::Scene(const Triangle* triangles, int triangleCount)
 {
+    m_octree.m_triangles.assign(triangles, triangles + triangleCount);
+    m_octree.Subdivide();
     m_triangles.assign(triangles, triangles + triangleCount);
 }
 
