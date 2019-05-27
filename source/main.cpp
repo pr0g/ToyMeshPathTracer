@@ -42,7 +42,7 @@ static const glm::vec3 kLightColor = glm::vec3(0.7f,0.6f,0.5f);
 // - new random ray for the next light bounce in "scattered"
 // - illumination from the directional light in "outLightE"
 static Ray Scatter(
-    const Ray& r, const Hit& hit, glm::vec3& outAttenuation,
+    const Ray& r, const Scene& scene, const Hit& hit, glm::vec3& outAttenuation,
     glm::vec3& outLightE, uint32_t& rngState, int& inoutRayCount)
 {
     outLightE = glm::vec3 { 0.0f };
@@ -56,7 +56,7 @@ static Ray Scatter(
     // explicit directional light by shooting a shadow ray
     ++inoutRayCount;
     Hit lightHit;
-    int id = HitScene(Ray(hit.pos, kLightDir), kMinT, kMaxT, lightHit);
+    int id = HitScene(Ray(hit.pos, kLightDir), scene, kMinT, kMaxT, lightHit);
     if (id == -1)
     {
         // ray towards the light did not hit anything in the scene, so
@@ -80,7 +80,7 @@ struct IntermediateScatterResult
 
 // trace a ray into the scene, and return the final color for it
 static glm::vec3 Trace(
-    Ray ray, uint32_t& rngState, int& inoutRayCount)
+    Ray ray, const Scene& scene, uint32_t& rngState, int& inoutRayCount)
 {
     thread_local IntermediateScatterResult scatteredResults[kMaxDepth];
 
@@ -90,12 +90,12 @@ static glm::vec3 Trace(
     {
         ++inoutRayCount;
         Hit hit;
-        int id = HitScene(ray, kMinT, kMaxT, hit);
+        int id = HitScene(ray, scene, kMinT, kMaxT, hit);
         // ray hits something in the scene
         if (id != -1)
         {
             ray = Scatter(
-                ray, hit, scatteredResults[depth].attenuation,
+                ray, scene, hit, scatteredResults[depth].attenuation,
                 scatteredResults[depth].light, rngState, inoutRayCount);
 
             ++depth;
@@ -119,13 +119,14 @@ static glm::vec3 Trace(
 }
 
 // load scene from an .OBJ file
-static bool LoadScene(const char* dataFile, glm::vec3& outBoundsMin, glm::vec3& outBoundsMax)
+static std::unique_ptr<Scene> LoadScene(
+    const char* dataFile, glm::vec3& outBoundsMin, glm::vec3& outBoundsMax)
 {
     ObjFile objFile;
     if (!objParseFile(objFile, dataFile))
     {
         printf("ERROR: failed to load .obj file\n");
-        return false;
+        return nullptr;
     }
 
     outBoundsMin = glm::vec3(+1.0e6f, +1.0e6f, +1.0e6f);
@@ -161,11 +162,11 @@ static bool LoadScene(const char* dataFile, glm::vec3& outBoundsMin, glm::vec3& 
     tris[objTriCount+1].v2 = glm::vec3(outBoundsMax.x+extra.x, outBoundsMin.y, outBoundsMin.z-extra.z);
 
     uint64_t t0 = stm_now();
-    InitializeScene(objTriCount + 2, tris);
+    std::unique_ptr<Scene> scene = std::make_unique<Scene>(tris, objTriCount + 2);
     printf("Initialized scene '%s' (%i tris) in %.3fs\n", dataFile, objTriCount+2, stm_sec(stm_since(t0)));
 
     delete[] tris;
-    return true;
+    return scene;
 }
 
 struct TraceData
@@ -178,8 +179,10 @@ struct TraceData
 
 class TraceImageBody {
 public:
-    TraceImageBody(TraceData* traceData)
+    TraceImageBody(
+        TraceData* traceData, const Scene* scene)
         : m_traceData(traceData)
+        , m_scene(scene)
         , m_invWidth(1.0f / traceData->screenWidth)
         , m_invHeight(1.0f / traceData->screenHeight)
         , m_samplesPerPixelRecip(1.0f / static_cast<float>(traceData->samplesPerPixel))
@@ -188,6 +191,7 @@ public:
 
     void operator()(const tbb::blocked_range<int64_t>& range) const {
         TraceData& data = *m_traceData;
+        const Scene& scene = *m_scene;
         uint8_t* image = data.image;
 
         const float invWidth = m_invWidth;
@@ -211,7 +215,7 @@ public:
                             (static_cast<float>(y) + RandomFloat01(rngState)) * invHeight,
                             rngState);
 
-                    col += Trace(ray, rngState, rayCount);
+                    col += Trace(ray, scene, rngState, rayCount);
                 }
 
                 col *= samplesPerPixelRecip;
@@ -235,6 +239,7 @@ public:
 
 private:
     TraceData* m_traceData = nullptr;
+    const Scene* m_scene = nullptr;
     float m_invWidth;
     float m_invHeight;
     float m_samplesPerPixelRecip;
@@ -275,9 +280,16 @@ int main(int argc, const char** argv)
     }
 
     // load model file and initialize the scene
+    const char* sceneFile =
+        "/Users/tomhultonharrop/Documents/Projects/ray-tracing-interview/data/suzanne.obj";
+
     glm::vec3 sceneMin, sceneMax;
-    if (!LoadScene("/Users/tomhultonharrop/Documents/Projects/ray-tracing-interview/data/suzanne.obj", sceneMin, sceneMax))
+    std::unique_ptr<Scene> scene = LoadScene(sceneFile, sceneMin, sceneMax);
+
+    if (!scene)
+    {
         return 1;
+    }
 
     // place a camera: put it a bit outside scene bounds, looking at the center of it
     glm::vec3 sceneSize = sceneMax - sceneMin;
@@ -291,6 +303,9 @@ int main(int argc, const char** argv)
     auto camera = Camera(
         lookfrom, lookat, glm::vec3(0.0f, 1.0f, 0.0f), 60.0f,
         float(screenWidth) / float(screenHeight), aperture, distToFocus);
+
+    // disabled - does not give correct results unfortunately
+    // scene->Cull(lookfrom);
 
     // create RGBA image for the result
     std::vector<uint8_t, tbb::cache_aligned_allocator<uint8_t>> image(
@@ -309,7 +324,7 @@ int main(int argc, const char** argv)
 
     const uint32_t grainSize = 1; // default grain size
     tbb::parallel_for(tbb::blocked_range<int64_t>(
-        0, screenHeight, grainSize), TraceImageBody(&data));
+        0, screenHeight, grainSize), TraceImageBody(&data, scene.get()));
 
     const double dt = stm_sec(stm_since(t0));
 

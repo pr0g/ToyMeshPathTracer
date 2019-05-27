@@ -1,11 +1,8 @@
 #include "scene.h"
 #include <string>
-#include <vector>
-#include <memory>
 
 #include "tbb/parallel_reduce.h"
 #include "tbb/blocked_range.h"
-#include "tbb/cache_aligned_allocator.h"
 
 // Checks if one triangle is hit by a ray segment.
 static bool HitTriangle(const Ray& r, const Triangle& tri, float tMin, float tMax, Hit& outHit)
@@ -46,22 +43,23 @@ static bool HitTriangle(const Ray& r, const Triangle& tri, float tMin, float tMa
     return false;
 }
 
-struct Scene
+Scene::Scene(const Triangle* triangles, int triangleCount)
 {
-    Scene(int triangleCount, const Triangle* triangles)
+    m_triangles.assign(triangles, triangles + triangleCount);
+}
+
+void Scene::Cull(const glm::vec3& lookFrom)
+{
+    m_triangles.erase(
+        std::remove_if(
+            m_triangles.begin(), m_triangles.end(),
+            [lookFrom](const Triangle& tri)
     {
-        m_Triangles.assign(triangles, triangles + triangleCount);
-    }
-
-    // Scene information: just a copy of the input triangles.
-    std::vector<Triangle, tbb::cache_aligned_allocator<Triangle>> m_Triangles;
-};
-
-std::unique_ptr<Scene> scene;
-
-void InitializeScene(int triangleCount, const Triangle* triangles)
-{
-    scene = std::make_unique<Scene>(triangleCount, triangles);
+        glm::vec3 edge0 = tri.v1 - tri.v0;
+        glm::vec3 edge1 = tri.v2 - tri.v1;
+        glm::vec3 normal = normalize(cross(edge0, edge1));
+        return glm::dot(tri.v0 - lookFrom, normal) >= 0.0f;
+    }), m_triangles.end());
 }
 
 struct HitSceneBody
@@ -123,14 +121,15 @@ struct HitSceneBody
 };
 
 // Check all the triangles in the scene for a hit, and return the closest one.
-int HitScene(const Ray& r, float tMin, float tMax, Hit& outHit)
+int HitScene(
+    const Ray& r, const Scene& scene, float tMin, float tMax, Hit& outHit)
 {
     auto hitBody = HitSceneBody(
-        scene->m_Triangles.data(), r, tMin, tMax);
+        scene.m_triangles.data(), r, tMin, tMax);
 
     const uint32_t grainSize = 10000; // disable threading
     tbb::parallel_reduce(tbb::blocked_range<int>(
-        0, (int)scene->m_Triangles.size(), grainSize), hitBody);
+        0, (int)scene.m_triangles.size(), grainSize), hitBody);
 
     outHit = hitBody.m_outHit;
     return hitBody.m_hitId;
