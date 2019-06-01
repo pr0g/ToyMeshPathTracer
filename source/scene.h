@@ -56,10 +56,11 @@ struct OctreeNode
         // iterate children and redistribute
         for (const auto& node : m_children)
         {
+            const auto center = node->m_aabb.center();
+            const auto halfDimensions = node->m_aabb.dimensions() * 0.5f;
             for (const Triangle& triangle : m_triangles)
             {
-                if (TriangleIntersectAabb(
-                    node->m_aabb.center(), node->m_aabb.dimensions() * 0.5f, triangle))
+                if (TriangleIntersectAabb(center, halfDimensions, triangle))
                 {
                     node->m_triangles.push_back(triangle);
                 }

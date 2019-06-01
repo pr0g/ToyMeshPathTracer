@@ -128,13 +128,32 @@ void Scene::BuildOctree(const glm::vec3& min, const glm::vec3& max)
 //    Hit m_outHit;
 //};
 
+// from Peter Shirley's "Ray Tracing: The Next Week"
+// note: ray direction should be inverted, i.e 1.0/direction!
+static bool HitAabb(const Ray& r, const Aabb& box, float tMin, float tMax)
+{
+#define DO_COORD(c) \
+    { \
+        float t0 = (box.min.c - r.orig.c) * r.dir.c; \
+        float t1 = (box.max.c - r.orig.c) * r.dir.c; \
+        if (r.dir.c < 0.0f) \
+            std::swap(t0, t1); \
+        tMin = t0 > tMin ? t0 : tMin; \
+        tMax = t1 < tMax ? t1 : tMax; \
+        if (tMax < tMin) \
+            return false; \
+    }
+    DO_COORD(x);
+    DO_COORD(y);
+    DO_COORD(z);
+    return true;
+}
+
 void HitSceneInternal(
-    const Ray& ray, const OctreeNode& octree, float tMin, float tMax,
+    const Ray& ray, const Ray& invRay, const OctreeNode& octree, float tMin, float tMax,
     Hit& outHit, int& hitId, float& hitMinT)
 {
-    float tmin;
-    glm::vec3 boxhit;
-    if (RayIntersectAabb(ray, octree.m_aabb, tmin, boxhit))
+    if (HitAabb(invRay, octree.m_aabb, tMin, tMax))
     {
         if (octree.Leaf())
         {
@@ -156,7 +175,7 @@ void HitSceneInternal(
         {
             for (const auto& oct : octree.m_children)
             {
-                HitSceneInternal(ray, *oct, tMin, tMax, outHit, hitId, hitMinT);
+                HitSceneInternal(ray, invRay, *oct, tMin, tMax, outHit, hitId, hitMinT);
             }
         }
     }
@@ -169,7 +188,9 @@ int HitScene(
     int hitId = -1;
     float hitMinT = tMax;
 
-    HitSceneInternal(ray, octree, tMin, tMax, outHit, hitId, hitMinT);
+    Ray invR = ray;
+    invR.dir = glm::vec3(1.0f) / ray.dir;
+    HitSceneInternal(ray, invR, octree, tMin, tMax, outHit, hitId, hitMinT);
 
     return hitId;
 
