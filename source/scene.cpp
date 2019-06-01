@@ -67,7 +67,7 @@ void Scene::BuildOctree(const glm::vec3& min, const glm::vec3& max)
     m_octree.m_aabb.min = min;
     m_octree.m_aabb.max = max;
     m_octree.m_triangles = m_triangles;
-    m_octree.Subdivide();
+    m_octree.Subdivide(0);
 }
 
 //struct HitSceneBody

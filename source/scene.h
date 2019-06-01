@@ -17,7 +17,7 @@ struct OctreeNode
     std::vector<Triangle, tbb::cache_aligned_allocator<Triangle>> m_triangles;
     bool Leaf() const { return m_children.empty(); }
 
-    void InternalDivide()
+    void InternalDivide(int depth)
     {
         glm::vec3 halfDimensions = m_aabb.dimensions() * 0.5f;
 
@@ -66,17 +66,17 @@ struct OctreeNode
                 }
             }
 
-            node->Subdivide();
+            node->Subdivide(depth);
         }
 
         m_triangles.clear();
     }
 
-    void Subdivide()
+    void Subdivide(int depth)
     {
-        if (m_triangles.size() > 50)
+        if (m_triangles.size() > 10 && depth < 10)
         {
-            InternalDivide();
+            InternalDivide(depth + 1);
         }
     }
 };
