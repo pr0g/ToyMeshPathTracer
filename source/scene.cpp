@@ -68,20 +68,6 @@ void Scene::BuildOctree(const glm::vec3& min, const glm::vec3& max)
     m_octree.m_aabb.max = max;
     m_octree.m_triangles = m_triangles;
     m_octree.Subdivide();
-    for (auto& octree : m_octree.m_children)
-    {
-        octree->Subdivide();
-
-        for (auto& ot : octree->m_children)
-        {
-            ot->Subdivide();
-
-            for (auto& t : ot->m_children)
-            {
-                t->Subdivide();
-            }
-        }
-    }
 }
 
 //struct HitSceneBody

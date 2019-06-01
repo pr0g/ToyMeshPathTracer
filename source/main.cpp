@@ -281,7 +281,7 @@ int main(int argc, const char** argv)
 
     // load model file and initialize the scene
     const char* sceneFile =
-        "/Users/tomhultonharrop/Documents/Projects/ray-tracing-interview/data/suzanne.obj";
+        "/Users/tomhultonharrop/Documents/Projects/ray-tracing-interview/data/teapot.obj";
 
     glm::vec3 sceneMin, sceneMax;
     std::unique_ptr<Scene> scene = LoadScene(sceneFile, sceneMin, sceneMax);

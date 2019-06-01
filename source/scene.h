@@ -17,9 +17,10 @@ struct OctreeNode
     std::vector<Triangle, tbb::cache_aligned_allocator<Triangle>> m_triangles;
     bool Leaf() const { return m_children.empty(); }
 
-    void Subdivide()
+    void InternalDivide()
     {
         glm::vec3 halfDimensions = m_aabb.dimensions() * 0.5f;
+
         // allocate children
         m_children.resize(8);
         for (int64_t i = 0; i < 8; ++i)
@@ -53,18 +54,29 @@ struct OctreeNode
         m_children[7]->m_aabb.max = m_children[7]->m_aabb.min + halfDimensions;
 
         // iterate children and redistribute
-        for (const Triangle& triangle : m_triangles)
+        for (const auto& node : m_children)
         {
-            for (const auto& node : m_children)
+            for (const Triangle& triangle : m_triangles)
             {
-                if (TriangleIntersectAabb(node->m_aabb.center(), node->m_aabb.dimensions() * 0.5f, triangle))
+                if (TriangleIntersectAabb(
+                    node->m_aabb.center(), node->m_aabb.dimensions() * 0.5f, triangle))
                 {
                     node->m_triangles.push_back(triangle);
                 }
             }
+
+            node->Subdivide();
         }
 
         m_triangles.clear();
+    }
+
+    void Subdivide()
+    {
+        if (m_triangles.size() > 50)
+        {
+            InternalDivide();
+        }
     }
 };
 
