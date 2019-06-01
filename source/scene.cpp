@@ -45,8 +45,6 @@ static bool HitTriangle(const Ray& r, const Triangle& tri, float tMin, float tMa
 
 Scene::Scene(const Triangle* triangles, int triangleCount)
 {
-    m_octree.m_triangles.assign(triangles, triangles + triangleCount);
-    m_octree.Subdivide();
     m_triangles.assign(triangles, triangles + triangleCount);
 }
 
@@ -64,75 +62,138 @@ void Scene::Cull(const glm::vec3& lookFrom)
     }), m_triangles.end());
 }
 
-struct HitSceneBody
+void Scene::BuildOctree(const glm::vec3& min, const glm::vec3& max)
 {
-    HitSceneBody(
-        const Triangle* triangles, const Ray& ray, float tMin, float tMax)
-        : m_triangles(triangles)
-        , m_tMin(tMin)
-        , m_tMax(tMax)
-        , m_hitMinT(tMax)
-        , m_hitId(-1)
-        , m_ray(&ray) {}
-
-    void operator()(const tbb::blocked_range<int>& range)
+    m_octree.m_aabb.min = min;
+    m_octree.m_aabb.max = max;
+    m_octree.m_triangles = m_triangles;
+    m_octree.Subdivide();
+    for (auto& octree : m_octree.m_children)
     {
-        const Ray* ray = m_ray;
-        const Triangle* triangles = m_triangles;
+        octree->Subdivide();
 
-        for (int i = range.begin(); i != range.end(); ++i)
+        for (auto& ot : octree->m_children)
         {
-            Hit hit;
-            if (HitTriangle(*ray, triangles[i], m_tMin, m_tMax, hit))
+            ot->Subdivide();
+
+            for (auto& t : ot->m_children)
             {
-                if (hit.t < m_hitMinT)
-                {
-                    m_hitMinT = hit.t;
-                    m_hitId = i;
-                    m_outHit = hit;
-                }
+                t->Subdivide();
             }
         }
     }
+}
 
-    HitSceneBody(const HitSceneBody& hitScene, tbb::split)
-        : m_triangles(hitScene.m_triangles)
-        , m_ray(hitScene.m_ray)
-        , m_tMin(hitScene.m_tMin)
-        , m_tMax(hitScene.m_tMax)
-        , m_hitId(-1)
-        , m_hitMinT(hitScene.m_tMax) {}
+//struct HitSceneBody
+//{
+//    HitSceneBody(
+//        const OctreeNode* octree, const Ray& ray, float tMin, float tMax)
+//        : m_triangles(triangles)
+//        , m_tMin(tMin)
+//        , m_tMax(tMax)
+//        , m_hitMinT(tMax)
+//        , m_hitId(-1)
+//        , m_ray(&ray) {}
+//
+//    void operator()(const tbb::blocked_range<int>& range)
+//    {
+//        const Ray* ray = m_ray;
+//        //const Triangle* triangles = m_triangles;
+//
+//        for (int i = range.begin(); i != range.end(); ++i)
+//        {
+//            Hit hit;
+//            if (HitTriangle(*ray, triangles[i], m_tMin, m_tMax, hit))
+//            {
+//                if (hit.t < m_hitMinT)
+//                {
+//                    m_hitMinT = hit.t;
+//                    m_hitId = i;
+//                    m_outHit = hit;
+//                }
+//            }
+//        }
+//    }
+//
+//    HitSceneBody(const HitSceneBody& hitScene, tbb::split)
+//        : m_octree(hitScene.m_octree)
+//        , m_ray(hitScene.m_ray)
+//        , m_tMin(hitScene.m_tMin)
+//        , m_tMax(hitScene.m_tMax)
+//        , m_hitId(-1)
+//        , m_hitMinT(hitScene.m_tMax) {}
+//
+//    void join(const HitSceneBody& hitScene)
+//    {
+//        if (hitScene.m_hitMinT < m_hitMinT)
+//        {
+//            m_hitMinT = hitScene.m_hitMinT;
+//            m_hitId = hitScene.m_hitId;
+//            m_outHit = hitScene.m_outHit;
+//        }
+//    }
+//
+//    int m_hitId = -1;
+//    float m_tMin = 0.0f;
+//    float m_tMax = 0.0f;
+//    float m_hitMinT;
+//    const Ray* m_ray;
+//    const OctreeNode* m_octree = nullptr;
+//    Hit m_outHit;
+//};
 
-    void join(const HitSceneBody& hitScene)
+void HitSceneInternal(
+    const Ray& ray, const OctreeNode& octree, float tMin, float tMax,
+    Hit& outHit, int& hitId, float& hitMinT)
+{
+    float tmin;
+    glm::vec3 boxhit;
+    if (RayIntersectAabb(ray, octree.m_aabb, tmin, boxhit))
     {
-        if (hitScene.m_hitMinT < m_hitMinT)
+        if (octree.Leaf())
         {
-            m_hitMinT = hitScene.m_hitMinT;
-            m_hitId = hitScene.m_hitId;
-            m_outHit = hitScene.m_outHit;
+            for (const auto& triangle : octree.m_triangles)
+            {
+                Hit hit;
+                if (HitTriangle(ray, triangle, tMin, tMax, hit))
+                {
+                    if (hit.t < hitMinT)
+                    {
+                        hitMinT = hit.t;
+                        hitId = 1;
+                        outHit = hit;
+                    }
+                }
+            }
+        }
+        else
+        {
+            for (const auto& oct : octree.m_children)
+            {
+                HitSceneInternal(ray, *oct, tMin, tMax, outHit, hitId, hitMinT);
+            }
         }
     }
-
-    int m_hitId = -1;
-    float m_tMin = 0.0f;
-    float m_tMax = 0.0f;
-    float m_hitMinT;
-    const Ray* m_ray;
-    const Triangle* m_triangles = nullptr;
-    Hit m_outHit;
-};
+}
 
 // Check all the triangles in the scene for a hit, and return the closest one.
 int HitScene(
-    const Ray& r, const Scene& scene, float tMin, float tMax, Hit& outHit)
+    const Ray& ray, const OctreeNode& octree, float tMin, float tMax, Hit& outHit)
 {
-    auto hitBody = HitSceneBody(
-        scene.m_triangles.data(), r, tMin, tMax);
+    int hitId = -1;
+    float hitMinT = tMax;
 
-    const uint32_t grainSize = 10000; // disable threading
-    tbb::parallel_reduce(tbb::blocked_range<int>(
-        0, (int)scene.m_triangles.size(), grainSize), hitBody);
+    HitSceneInternal(ray, octree, tMin, tMax, outHit, hitId, hitMinT);
 
-    outHit = hitBody.m_outHit;
-    return hitBody.m_hitId;
+    return hitId;
+
+//    auto hitBody = HitSceneBody(
+//        scene.m_octree, r, tMin, tMax);
+//
+//    const uint32_t grainSize = 10000; // disable threading
+//    tbb::parallel_reduce(tbb::blocked_range<int>(
+//        0, (int)scene.m_triangles.size(), grainSize), hitBody);
+//
+//    outHit = hitBody.m_outHit;
+//    return hitBody.m_hitId;
 }

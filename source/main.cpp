@@ -56,7 +56,7 @@ static Ray Scatter(
     // explicit directional light by shooting a shadow ray
     ++inoutRayCount;
     Hit lightHit;
-    int id = HitScene(Ray(hit.pos, kLightDir), scene, kMinT, kMaxT, lightHit);
+    int id = HitScene(Ray(hit.pos, kLightDir), scene.m_octree, kMinT, kMaxT, lightHit);
     if (id == -1)
     {
         // ray towards the light did not hit anything in the scene, so
@@ -90,7 +90,7 @@ static glm::vec3 Trace(
     {
         ++inoutRayCount;
         Hit hit;
-        int id = HitScene(ray, scene, kMinT, kMaxT, hit);
+        int id = HitScene(ray, scene.m_octree, kMinT, kMaxT, hit);
         // ray hits something in the scene
         if (id != -1)
         {
@@ -108,7 +108,7 @@ static glm::vec3 Trace(
             break;
         }
     }
-    
+
     for (int i = depth - 1; i >= 0; --i)
     {
         color = scatteredResults[i].light +
@@ -293,6 +293,7 @@ int main(int argc, const char** argv)
 
     // place a camera: put it a bit outside scene bounds, looking at the center of it
     glm::vec3 sceneSize = sceneMax - sceneMin;
+    glm::vec3 extra = sceneSize * 0.7f;
     glm::vec3 sceneCenter = (sceneMin + sceneMax) * 0.5f;
     glm::vec3 lookfrom = sceneCenter + sceneSize * glm::vec3(0.3f,0.6f,1.2f);
     if (strstr(argv[4], "sponza.obj") != nullptr) // sponza looks bad when viewed from outside; hardcode camera position
@@ -304,8 +305,10 @@ int main(int argc, const char** argv)
         lookfrom, lookat, glm::vec3(0.0f, 1.0f, 0.0f), 60.0f,
         float(screenWidth) / float(screenHeight), aperture, distToFocus);
 
-    // disabled - does not give correct results unfortunately
+    // disabled - does not give correct results unfortunately (idiot)
     // scene->Cull(lookfrom);
+
+    scene->BuildOctree(sceneMin - extra, sceneMax + extra);
 
     // create RGBA image for the result
     std::vector<uint8_t, tbb::cache_aligned_allocator<uint8_t>> image(
@@ -335,7 +338,7 @@ int main(int argc, const char** argv)
 
     // write resulting image as PNG
     stbi_flip_vertically_on_write(1);
-    stbi_write_png("output.png", screenWidth, screenHeight, 4, image.data(), screenWidth*4);
+    stbi_write_png("output.png", screenWidth, screenHeight, 4, image.data(), screenWidth * 4);
 
     return 0;
 }

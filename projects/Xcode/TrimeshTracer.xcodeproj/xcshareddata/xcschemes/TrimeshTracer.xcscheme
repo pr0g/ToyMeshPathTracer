@@ -72,7 +72,7 @@
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "1"
+            argument = "4"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
@@ -86,6 +86,10 @@
          <CommandLineArgument
             argument = "data/suzanne.obj"
             isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "data/sponza.obj"
+            isEnabled = "NO">
          </CommandLineArgument>
       </CommandLineArguments>
       <AdditionalOptions>

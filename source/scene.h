@@ -14,9 +14,9 @@ struct OctreeNode
 {
     Aabb m_aabb;
     std::vector<std::unique_ptr<OctreeNode>> m_children;
-    std::vector<Triangle> m_triangles;
+    std::vector<Triangle, tbb::cache_aligned_allocator<Triangle>> m_triangles;
     bool Leaf() const { return m_children.empty(); }
-    
+
     void Subdivide()
     {
         glm::vec3 halfDimensions = m_aabb.dimensions() * 0.5f;
@@ -26,30 +26,30 @@ struct OctreeNode
         {
             m_children[i] = std::make_unique<OctreeNode>();
         }
-        
+
         // initialize dimensions
         m_children[0]->m_aabb.min = m_aabb.min;
-        m_children[0]->m_aabb.max = m_children[0]->m_aabb.min + glm::vec3(0.0f, 0.0f, 0.0f);
-        
+        m_children[0]->m_aabb.max = m_children[0]->m_aabb.min + halfDimensions;
+
         m_children[1]->m_aabb.min = m_aabb.min + glm::vec3(halfDimensions.x, 0.0f, 0.0f);
         m_children[1]->m_aabb.max = m_children[1]->m_aabb.min + halfDimensions;
-        
-        m_children[2]->m_aabb.min = m_aabb.min + glm::vec3(0.0f, halfDimensions.y, 0.0f);
+
+        m_children[2]->m_aabb.min = m_aabb.min + glm::vec3(0.0f, 0.0f, halfDimensions.z);
         m_children[2]->m_aabb.max = m_children[2]->m_aabb.min + halfDimensions;
-        
-        m_children[3]->m_aabb.min = m_aabb.min + glm::vec3(halfDimensions.x, halfDimensions.y, 0.0f);
+
+        m_children[3]->m_aabb.min = m_aabb.min + glm::vec3(halfDimensions.x, 0.0f, halfDimensions.z);
         m_children[3]->m_aabb.max = m_children[3]->m_aabb.min + halfDimensions;
-        
-        m_children[4]->m_aabb.min = m_aabb.min;
-        m_children[4]->m_aabb.max = m_children[4]->m_aabb.min + glm::vec3(0.0f, 0.0f, halfDimensions.z);
-        
-        m_children[5]->m_aabb.min = m_aabb.min + glm::vec3(halfDimensions.x, 0.0f, halfDimensions.z);
+
+        m_children[4]->m_aabb.min = m_aabb.min + glm::vec3(0.0f, halfDimensions.y, 0.0f);
+        m_children[4]->m_aabb.max = m_children[4]->m_aabb.min + halfDimensions;
+
+        m_children[5]->m_aabb.min = m_aabb.min + glm::vec3(halfDimensions.x, halfDimensions.y, 0.0f);
         m_children[5]->m_aabb.max = m_children[5]->m_aabb.min + halfDimensions;
-        
+
         m_children[6]->m_aabb.min = m_aabb.min + glm::vec3(0.0f, halfDimensions.y, halfDimensions.z);
         m_children[6]->m_aabb.max = m_children[6]->m_aabb.min + halfDimensions;
-        
-        m_children[7]->m_aabb.min = m_aabb.min + glm::vec3(halfDimensions.x, halfDimensions.y, halfDimensions.z);
+
+        m_children[7]->m_aabb.min = m_aabb.min + halfDimensions;
         m_children[7]->m_aabb.max = m_children[7]->m_aabb.min + halfDimensions;
 
         // iterate children and redistribute
@@ -63,7 +63,7 @@ struct OctreeNode
                 }
             }
         }
-        
+
         m_triangles.clear();
     }
 };
@@ -77,11 +77,14 @@ struct Scene
     // doesn't work for ray tracing as triangles in shadow
     // are incorrectly discarded (shadows appear broken)
     void Cull(const glm::vec3& lookFrom);
-    
+
+    void BuildOctree(const glm::vec3& min, const glm::vec3& max);
+
     OctreeNode m_octree;
 
+private:
     // Scene information: just a copy of the input triangles.
-//    std::vector<Triangle, tbb::cache_aligned_allocator<Triangle>> m_triangles;
+    std::vector<Triangle, tbb::cache_aligned_allocator<Triangle>> m_triangles;
 };
 
 // Checks if the ray segment hits a scene. If any triangle is hit by the ray, this
@@ -93,4 +96,4 @@ struct Scene
 //
 // Function returns the triangle index, or -1 if nothing is hit by the ray.
 int HitScene(
-    const Ray& r, const Scene& scene, float tMin, float tMax, Hit& outHit);
+    const Ray& r, const OctreeNode& octree, float tMin, float tMax, Hit& outHit);

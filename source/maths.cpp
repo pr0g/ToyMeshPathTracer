@@ -97,19 +97,19 @@ bool PlaneIntersectAabb(
 {
     float v;
     glm::vec3 vmin, vmax;
-    for(int q = 0; q <= 2; q++)
+    for (int q = 0; q <= 2; q++)
     {
-        v=vert[q];
+        v = vert[q];
 
-        if (normal[q]>0.0f)
+        if (normal[q] > 0.0f)
         {
             vmin[q] = -maxbox[q] - v;
-            vmax[q]= maxbox[q] - v;
+            vmax[q] =  maxbox[q] - v;
         }
         else
         {
-            vmin[q]= maxbox[q] - v;
-            vmax[q]=-maxbox[q] - v;
+            vmin[q] =  maxbox[q] - v;
+            vmax[q] = -maxbox[q] - v;
         }
     }
 
@@ -154,10 +154,10 @@ bool TriangleIntersectAabb(
     //SUB(e0,v1,v0);      /* tri edge 0 */
     glm::vec3 e0 = v1 - v0;
     //SUB(e1,v2,v1);      /* tri edge 1 */
-    glm::vec3 e1 = v2 - v0;
+    glm::vec3 e1 = v2 - v1;
     //SUB(e2,v0,v2);      /* tri edge 2 */
     glm::vec3 e2 = v0 - v2;
-   
+
     /* Bullet 3:  */
     /*  test the 9 tests first (this was faster) */
 
@@ -190,23 +190,23 @@ bool TriangleIntersectAabb(
     /*  find min, max of the triangle each direction, and test for overlap in */
     /*  that direction -- this is equivalent to testing a minimal AABB around */
     /*  the triangle against the AABB */
-    
+
     /* test in X-direction */
-    FINDMINMAX(v0[0],v1[0],v2[0],min,max);
+    FINDMINMAX(v0[0], v1[0], v2[0],min, max);
     if (min > boxhalfsize[0] || max < -boxhalfsize[0])
     {
         return false;
     }
 
     /* test in Y-direction */
-    FINDMINMAX(v0[1],v1[1],v2[1],min,max);
+    FINDMINMAX(v0[1], v1[1], v2[1], min, max);
     if (min > boxhalfsize[1] || max < -boxhalfsize[1])
     {
         return false;
     }
 
     /* test in Z-direction */
-    FINDMINMAX(v0[2],v1[2],v2[2],min,max);
+    FINDMINMAX(v0[2], v1[2], v2[2], min, max);
     if (min > boxhalfsize[2] || max < -boxhalfsize[2])
     {
         return false;
@@ -218,8 +218,7 @@ bool TriangleIntersectAabb(
 
     //CROSS(normal,e0,e1);
     glm::vec3 normal = glm::cross(e0, e1);
-
-    if (!PlaneIntersectAabb(normal,v0,boxhalfsize))
+    if (!PlaneIntersectAabb(normal, v0, boxhalfsize))
     {
         return false;
     }
