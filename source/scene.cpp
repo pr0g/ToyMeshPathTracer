@@ -29,7 +29,7 @@ static void HitSceneInternal(
             for (const auto& triangle : octree.m_triangles)
             {
                 Hit hit;
-                if (RayIntersectTriangle(ray, triangle, tMin, tMax, hit))
+                if (RayIntersectTriangleImproved(ray, triangle, tMin, tMax, hit))
                 {
                     if (hit.t < hitMinT)
                     {

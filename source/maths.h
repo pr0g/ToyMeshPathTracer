@@ -144,6 +144,11 @@ bool RayIntersectAabb(
 bool RayIntersectTriangle(
     const Ray& r, const Triangle& tri, float tMin, float tMax, Hit& outHit);
 
+// Fast Minimum Storage RayTriangle Intersection - Tomas Moller, Ben Trumb
+// https://cadxfem.org/inf/Fast%20MinimumStorage%20RayTriangle%20Intersection.pdf
+bool RayIntersectTriangleImproved(
+    const Ray& r, const Triangle& tri, float tMin, float tMax, Hit& outHit);
+
 // Reference Fast 3D Triangle-Box Overlap Testing by Tomas Akenine-Moller
 // https://fileadmin.cs.lth.se/cs/Personal/Tomas_Akenine-Moller/pubs/tribox.pdf
 // http://fileadmin.cs.lth.se/cs/Personal/Tomas_Akenine-Moller/code/tribox3.txt

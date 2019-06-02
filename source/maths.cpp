@@ -335,3 +335,46 @@ bool RayIntersectTriangle(
 
     return false;
 }
+
+constexpr float Epsilon = 1e-5f;
+bool RayIntersectTriangleImproved(
+    const Ray& r, const Triangle& tri, float tMin, float tMax, Hit& outHit)
+{
+    const glm::vec3 edge1 = tri.v1 - tri.v0;
+    const glm::vec3 edge2 = tri.v2 - tri.v0;
+
+    glm::vec3 pvec = glm::cross(r.dir, edge2);
+    const float det = glm::dot(edge1, pvec);
+
+    if (det > -Epsilon && det < Epsilon)
+    {
+        return false;
+    }
+
+    const float invDet = 1.0f / det;
+
+    const glm::vec3 tvec = r.orig - tri.v0;
+    float u = glm::dot(tvec, pvec) * invDet;
+    if (u < 0.0f || u > 1.0f)
+    {
+        return false;
+    }
+
+    const glm::vec3 qvec = glm::cross(tvec, edge1);
+    float v = glm::dot(r.dir, qvec) * invDet;
+    if (v < 0.0f || u + v > 1.0f)
+    {
+        return false;
+    }
+
+    const float t = glm::dot(edge2, qvec) * invDet;
+    if (t >= tMin && t <= tMax)
+    {
+        outHit.t = t;
+        outHit.pos = (1.0f - u - v) * tri.v0 + u * tri.v1 + v * tri.v2;
+        outHit.normal = glm::normalize(glm::cross(edge1, edge2));
+        return true;
+    }
+
+    return false;
+}
