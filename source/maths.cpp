@@ -37,6 +37,76 @@ glm::vec3 RandomUnitVector(uint32_t& state)
     return glm::vec3(x, y, z);
 }
 
+Camera::Camera(
+    const glm::vec3& lookFrom, const glm::vec3& lookAt, const glm::vec3& vup,
+    float vfov, float aspect, float aperture, float focusDist)
+{
+    lensRadius = aperture * 0.5f;
+    float theta = vfov * kPI / 180.0f;
+    float halfHeight = tanf(theta * 0.5f);
+    float halfWidth = aspect * halfHeight;
+    origin = lookFrom;
+    w = glm::normalize(lookFrom - lookAt);
+    u = glm::normalize(cross(vup, w));
+    v = cross(w, u);
+    lowerLeftCorner =
+        origin -
+        halfWidth * focusDist * u -
+        halfHeight * focusDist * v -
+        focusDist * w;
+    horizontal = 2.0f * halfWidth * focusDist * u;
+    vertical = 2.0f * halfHeight * focusDist * v;
+}
+
+bool RayIntersectAabb(
+    const Ray& ray, const Aabb& aabb, float &tmin, glm::vec3& q)
+{
+    tmin = 0.0f;          // set to -FLT_MAX to get first hit on line
+    float tmax = FLT_MAX; // set to max distance ray can travel (for segment)
+
+    // For all three slabs
+    for (int i = 0; i < 3; i++)
+    {
+        constexpr float EPSILON = 0.001f;
+        if (fabsf(ray.dir[i]) < EPSILON)
+        {
+            // Ray is parallel to slab. No hit if origin not within slab
+            if (ray.orig[i] < aabb.min[i] || ray.orig[i] > aabb.max[i])
+            {
+                return false;
+            }
+        }
+        else
+        {
+            // Compute intersection t value of ray with near and far plane of slab
+            float ood = 1.0f / ray.dir[i];
+            float t1 = (aabb.min[i] - ray.orig[i]) * ood;
+            float t2 = (aabb.max[i] - ray.orig[i]) * ood;
+
+            // Make t1 be intersection with near plane, t2 with far plane
+            if (t1 > t2)
+            {
+                std::swap(t1, t2);
+            }
+
+            // Compute the intersection of slab intersections intervals
+            tmin = glm::max(tmin, t1);
+            tmax = glm::min(tmax, t2);
+
+            // Exit with no collision as soon as slab intersection becomes empty
+            if (tmin > tmax)
+            {
+                return false;
+            }
+        }
+    }
+
+    // Ray intersects all 3 slabs. Return point (q) and intersection t value (tmin)
+    q = ray.orig + ray.dir * tmin;
+
+    return true;
+}
+
 /*======================== X-tests ========================*/
 
 #define AXISTEST_X01(a, b, fa, fb)                      \
@@ -225,4 +295,43 @@ bool TriangleIntersectAabb(
 
     // box and triangle overlaps
     return true;
+}
+
+bool RayIntersectTriangle(
+    const Ray& r, const Triangle& tri, float tMin, float tMax, Hit& outHit)
+{
+    glm::vec3 edge0 = tri.v1 - tri.v0;
+    glm::vec3 edge1 = tri.v2 - tri.v1;
+    glm::vec3 normal = normalize(cross(edge0, edge1));
+    float planeOffset = dot(tri.v0, normal);
+
+    glm::vec3 p0 = r.pointAt(tMin);
+    glm::vec3 p1 = r.pointAt(tMax);
+
+    float offset0 = dot(p0, normal);
+    float offset1 = dot(p1, normal);
+
+    // does the ray segment between tMin & tMax intersect the triangle plane?
+    if ((offset0 - planeOffset) * (offset1 - planeOffset) <= 0.0f)
+    {
+        float t = tMin + (tMax - tMin)*(planeOffset - offset0) / (offset1 - offset0);
+        glm::vec3 p = r.pointAt(t);
+
+        glm::vec3 c0 = cross(edge0, p - tri.v0);
+        glm::vec3 c1 = cross(edge1, p - tri.v1);
+        if (dot(c0, c1) >= 0.f)
+        {
+            auto edge2 = tri.v0 - tri.v2;
+            auto c2 = cross(edge2, p - tri.v2);
+            if (dot(c1, c2) >= 0.0f)
+            {
+                outHit.t = t;
+                outHit.pos = p;
+                outHit.normal = normal;
+                return true;
+            }
+        }
+    }
+
+    return false;
 }

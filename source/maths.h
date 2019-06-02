@@ -86,25 +86,9 @@ struct Camera
 
     // vfov is top to bottom in degrees
     Camera(
-        const glm::vec3& lookFrom, const glm::vec3& lookAt, const glm::vec3& vup,
-        float vfov, float aspect, float aperture, float focusDist)
-    {
-        lensRadius = aperture * 0.5f;
-        float theta = vfov * kPI / 180.0f;
-        float halfHeight = tanf(theta * 0.5f);
-        float halfWidth = aspect * halfHeight;
-        origin = lookFrom;
-        w = glm::normalize(lookFrom - lookAt);
-        u = glm::normalize(cross(vup, w));
-        v = cross(w, u);
-        lowerLeftCorner =
-            origin -
-            halfWidth * focusDist * u -
-            halfHeight * focusDist * v -
-            focusDist * w;
-        horizontal = 2.0f * halfWidth * focusDist * u;
-        vertical = 2.0f * halfHeight * focusDist * v;
-    }
+        const glm::vec3& lookFrom, const glm::vec3& lookAt,
+        const glm::vec3& vup, float vfov, float aspect,
+        float aperture, float focusDist);
 
     Ray GetRay(float s, float t, uint32_t& state) const
     {
@@ -127,58 +111,38 @@ struct Camera
     float lensRadius;
 };
 
+// from Peter Shirley's "Ray Tracing: The Next Week"
+// note: ray direction should be inverted, i.e 1.0/direction!
+inline bool RayHitAabb(
+    const Ray& r, const Aabb& box, float tMin, float tMax)
+{
+#define DO_COORD(c) \
+    { \
+        float t0 = (box.min.c - r.orig.c) * r.dir.c; \
+        float t1 = (box.max.c - r.orig.c) * r.dir.c; \
+        if (r.dir.c < 0.0f) \
+            std::swap(t0, t1); \
+        tMin = t0 > tMin ? t0 : tMin; \
+        tMax = t1 < tMax ? t1 : tMax; \
+        if (tMax < tMin) \
+            return false; \
+    }
+    DO_COORD(x);
+    DO_COORD(y);
+    DO_COORD(z);
+    return true;
+}
+
 // Real-Time Collision Detection - Christer Ericson
 // Section 5.3.3
 // Intersect ray R(t) = p + t*d against AABB a. When intersecting,
 // return intersection distance tmin and point q of intersection
-inline bool RayIntersectAabb(
-    const Ray& ray, const Aabb& aabb, float &tmin, glm::vec3& q)
-{
-    tmin = 0.0f;          // set to -FLT_MAX to get first hit on line
-    float tmax = FLT_MAX; // set to max distance ray can travel (for segment)
+bool RayIntersectAabb(
+    const Ray& ray, const Aabb& aabb, float &tmin, glm::vec3& q);
 
-    // For all three slabs
-    for (int i = 0; i < 3; i++)
-    {
-        constexpr float EPSILON = 0.001f;
-        if (fabsf(ray.dir[i]) < EPSILON)
-        {
-            // Ray is parallel to slab. No hit if origin not within slab
-            if (ray.orig[i] < aabb.min[i] || ray.orig[i] > aabb.max[i])
-            {
-                return false;
-            }
-        }
-        else
-        {
-            // Compute intersection t value of ray with near and far plane of slab
-            float ood = 1.0f / ray.dir[i];
-            float t1 = (aabb.min[i] - ray.orig[i]) * ood;
-            float t2 = (aabb.max[i] - ray.orig[i]) * ood;
-
-            // Make t1 be intersection with near plane, t2 with far plane
-            if (t1 > t2)
-            {
-                std::swap(t1, t2);
-            }
-
-            // Compute the intersection of slab intersections intervals
-            tmin = glm::max(tmin, t1);
-            tmax = glm::min(tmax, t2);
-
-            // Exit with no collision as soon as slab intersection becomes empty
-            if (tmin > tmax)
-            {
-                return false;
-            }
-        }
-    }
-
-    // Ray intersects all 3 slabs. Return point (q) and intersection t value (tmin)
-    q = ray.orig + ray.dir * tmin;
-
-    return true;
-}
+// Checks if one triangle is hit by a ray segment.
+bool RayIntersectTriangle(
+    const Ray& r, const Triangle& tri, float tMin, float tMax, Hit& outHit);
 
 // Reference Fast 3D Triangle-Box Overlap Testing by Tomas Akenine-Moller
 // https://fileadmin.cs.lth.se/cs/Personal/Tomas_Akenine-Moller/pubs/tribox.pdf

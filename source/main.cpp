@@ -56,7 +56,7 @@ static Ray Scatter(
     // explicit directional light by shooting a shadow ray
     ++inoutRayCount;
     Hit lightHit;
-    int id = HitScene(Ray(hit.pos, kLightDir), scene.m_octree, kMinT, kMaxT, lightHit);
+    int id = scene.HitScene(Ray(hit.pos, kLightDir), kMinT, kMaxT, lightHit);
     if (id == -1)
     {
         // ray towards the light did not hit anything in the scene, so
@@ -90,7 +90,7 @@ static glm::vec3 Trace(
     {
         ++inoutRayCount;
         Hit hit;
-        int id = HitScene(ray, scene.m_octree, kMinT, kMaxT, hit);
+        int id = scene.HitScene(ray, kMinT, kMaxT, hit);
         // ray hits something in the scene
         if (id != -1)
         {
@@ -279,12 +279,13 @@ int main(int argc, const char** argv)
         return 1;
     }
 
+    // absolute path needed for instruments in xcode
+    // const char* sceneFile =
+    //     "/Users/tomhultonharrop/Documents/Projects/ray-tracing-interview/data/teapot.obj";
+    
     // load model file and initialize the scene
-    const char* sceneFile =
-        "/Users/tomhultonharrop/Documents/Projects/ray-tracing-interview/data/teapot.obj";
-
     glm::vec3 sceneMin, sceneMax;
-    std::unique_ptr<Scene> scene = LoadScene(sceneFile, sceneMin, sceneMax);
+    std::unique_ptr<Scene> scene = LoadScene(argv[4], sceneMin, sceneMax);
 
     if (!scene)
     {
