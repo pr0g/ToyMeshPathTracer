@@ -9,7 +9,7 @@ struct OctreeNode
     Aabb m_aabb;
     
     std::vector<std::unique_ptr<OctreeNode>> m_children;
-    std::vector<Triangle, tbb::cache_aligned_allocator<Triangle>> m_triangles;
+    Triangles m_triangles;
     
     bool Leaf() const { return m_children.empty(); }
     void Subdivide(int depth = 0);
@@ -26,10 +26,10 @@ static void HitSceneInternal(
     {
         if (octree.Leaf())
         {
-            for (const auto& triangle : octree.m_triangles)
+            for (size_t i = 0; i < octree.m_triangles.count(); ++i)
             {
                 Hit hit;
-                if (RayIntersectTriangleImproved(ray, triangle, tMin, tMax, hit))
+                if (RayIntersectTriangleImproved(ray, octree.m_triangles.tri(i), tMin, tMax, hit))
                 {
                     if (hit.t < hitMinT)
                     {
@@ -51,26 +51,14 @@ static void HitSceneInternal(
     }
 }
 
-Scene::Scene(const Triangle* triangles, int triangleCount)
+Scene::Scene(const Triangles& triangles)
 {
-    m_triangles.assign(triangles, triangles + triangleCount);
+    m_triangles.v0 = triangles.v0;
+    m_triangles.v1 = triangles.v1;
+    m_triangles.v2 = triangles.v2;
 }
 
 Scene::~Scene() = default;
-
-void Scene::Cull(const glm::vec3& lookFrom)
-{
-    m_triangles.erase(
-        std::remove_if(
-            m_triangles.begin(), m_triangles.end(),
-            [lookFrom](const Triangle& tri)
-    {
-        glm::vec3 edge0 = tri.v1 - tri.v0;
-        glm::vec3 edge1 = tri.v2 - tri.v1;
-        glm::vec3 normal = normalize(cross(edge0, edge1));
-        return glm::dot(tri.v0 - lookFrom, normal) >= 0.0f;
-    }), m_triangles.end());
-}
 
 void Scene::BuildOctree(const glm::vec3& min, const glm::vec3& max)
 {
@@ -98,7 +86,7 @@ int Scene::HitScene(
 
 void OctreeNode::Subdivide(int depth)
 {
-    if (m_triangles.size() > 10 && depth < 10)
+    if (m_triangles.count() > 10 && depth < 10)
     {
         InternalDivide(depth + 1);
     }
@@ -145,11 +133,12 @@ void OctreeNode::InternalDivide(int depth)
     {
         const auto center = node->m_aabb.center();
         const auto halfDimensions = node->m_aabb.dimensions() * 0.5f;
-        for (const Triangle& triangle : m_triangles)
+        for (size_t i = 0; i < m_triangles.count(); ++i)
         {
-            if (TriangleIntersectAabb(center, halfDimensions, triangle))
+            const Triangle& tri = m_triangles.tri(i);
+            if (TriangleIntersectAabb(center, halfDimensions, tri))
             {
-                node->m_triangles.push_back(triangle);
+                node->m_triangles.add(tri);
             }
         }
 

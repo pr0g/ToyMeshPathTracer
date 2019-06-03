@@ -133,7 +133,11 @@ static std::unique_ptr<Scene> LoadScene(
     outBoundsMax = glm::vec3(-1.0e6f, -1.0e6f, -1.0e6f);
 
     int objTriCount = int(objFile.f_size / 9);
-    Triangle* tris = new Triangle[objTriCount + 2]; // will add two triangles for the "floor"
+    Triangles tris;
+    // will add two triangles for the "floor"
+    tris.v0.reserve(objTriCount + 2);
+    tris.v1.reserve(objTriCount + 2);
+    tris.v2.reserve(objTriCount + 2);
     for (int i = 0; i < objTriCount; ++i)
     {
         int idx0 = objFile.f[i * 9 + 0] * 3;
@@ -142,9 +146,9 @@ static std::unique_ptr<Scene> LoadScene(
         glm::vec3 v0 = glm::vec3(objFile.v[idx0 + 0], objFile.v[idx0 + 1], objFile.v[idx0 + 2]);
         glm::vec3 v1 = glm::vec3(objFile.v[idx1 + 0], objFile.v[idx1 + 1], objFile.v[idx1 + 2]);
         glm::vec3 v2 = glm::vec3(objFile.v[idx2 + 0], objFile.v[idx2 + 1], objFile.v[idx2 + 2]);
-        tris[i].v0 = v0;
-        tris[i].v1 = v1;
-        tris[i].v2 = v2;
+        tris.v0.push_back(v0);
+        tris.v1.push_back(v1);
+        tris.v2.push_back(v2);
         outBoundsMin = min(outBoundsMin, v0); outBoundsMax = max(outBoundsMax, v0);
         outBoundsMin = min(outBoundsMin, v1); outBoundsMax = max(outBoundsMax, v1);
         outBoundsMin = min(outBoundsMin, v2); outBoundsMax = max(outBoundsMax, v2);
@@ -154,18 +158,17 @@ static std::unique_ptr<Scene> LoadScene(
     // itself, to serve as a "floor"
     glm::vec3 size = outBoundsMax - outBoundsMin;
     glm::vec3 extra = size * 0.7f;
-    tris[objTriCount+0].v0 = glm::vec3(outBoundsMin.x-extra.x, outBoundsMin.y, outBoundsMin.z-extra.z);
-    tris[objTriCount+0].v1 = glm::vec3(outBoundsMin.x-extra.x, outBoundsMin.y, outBoundsMax.z+extra.z);
-    tris[objTriCount+0].v2 = glm::vec3(outBoundsMax.x+extra.x, outBoundsMin.y, outBoundsMin.z-extra.z);
-    tris[objTriCount+1].v0 = glm::vec3(outBoundsMin.x-extra.x, outBoundsMin.y, outBoundsMax.z+extra.z);
-    tris[objTriCount+1].v1 = glm::vec3(outBoundsMax.x+extra.x, outBoundsMin.y, outBoundsMax.z+extra.z);
-    tris[objTriCount+1].v2 = glm::vec3(outBoundsMax.x+extra.x, outBoundsMin.y, outBoundsMin.z-extra.z);
+    tris.v0.push_back(glm::vec3(outBoundsMin.x-extra.x, outBoundsMin.y, outBoundsMin.z-extra.z));
+    tris.v1.push_back(glm::vec3(outBoundsMin.x-extra.x, outBoundsMin.y, outBoundsMax.z+extra.z));
+    tris.v2.push_back(glm::vec3(outBoundsMax.x+extra.x, outBoundsMin.y, outBoundsMin.z-extra.z));
+    tris.v0.push_back(glm::vec3(outBoundsMin.x-extra.x, outBoundsMin.y, outBoundsMax.z+extra.z));
+    tris.v1.push_back(glm::vec3(outBoundsMax.x+extra.x, outBoundsMin.y, outBoundsMax.z+extra.z));
+    tris.v2.push_back(glm::vec3(outBoundsMax.x+extra.x, outBoundsMin.y, outBoundsMin.z-extra.z));
 
     uint64_t t0 = stm_now();
-    std::unique_ptr<Scene> scene = std::make_unique<Scene>(tris, objTriCount + 2);
+    std::unique_ptr<Scene> scene = std::make_unique<Scene>(tris);
     printf("Initialized scene '%s' (%i tris) in %.3fs\n", dataFile, objTriCount+2, stm_sec(stm_since(t0)));
 
-    delete[] tris;
     return scene;
 }
 
@@ -305,9 +308,6 @@ int main(int argc, const char** argv)
     auto camera = Camera(
         lookfrom, lookat, glm::vec3(0.0f, 1.0f, 0.0f), 60.0f,
         float(screenWidth) / float(screenHeight), aperture, distToFocus);
-
-    // disabled - does not give correct results unfortunately (idiot)
-    // scene->Cull(lookfrom);
 
     scene->BuildOctree(sceneMin - extra, sceneMax + extra);
 

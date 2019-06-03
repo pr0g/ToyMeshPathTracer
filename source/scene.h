@@ -16,12 +16,8 @@ struct OctreeNode;
 // (no "objects", "instances" or "materials").
 struct Scene
 {
-    Scene(const Triangle* triangles, int triangleCount);
+    Scene(const Triangles& triangles);
     ~Scene();
-
-    // doesn't work for ray tracing as triangles in shadow
-    // are incorrectly discarded (shadows appear broken)
-    void Cull(const glm::vec3& lookFrom);
 
     void BuildOctree(const glm::vec3& min, const glm::vec3& max);
     
@@ -38,6 +34,6 @@ struct Scene
 
 private:
     // Scene information: just a copy of the input triangles.
-    std::vector<Triangle, tbb::cache_aligned_allocator<Triangle>> m_triangles;
+    Triangles m_triangles;
     std::unique_ptr<OctreeNode> m_octree;
 };

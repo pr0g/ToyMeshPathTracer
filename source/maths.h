@@ -7,9 +7,12 @@
 #include <cmath>
 #include <assert.h>
 #include <stdint.h>
+#include <vector>
 
 #include "glm/glm.hpp"
 #include "glm/gtc/epsilon.hpp"
+
+#include "tbb/cache_aligned_allocator.h"
 
 #define kPI 3.1415926f
 
@@ -56,6 +59,34 @@ struct Hit
 struct Triangle
 {
     glm::vec3 v0, v1, v2;
+};
+
+struct Triangles
+{
+    std::vector<glm::vec3, tbb::cache_aligned_allocator<glm::vec3>> v0;
+    std::vector<glm::vec3, tbb::cache_aligned_allocator<glm::vec3>> v1;
+    std::vector<glm::vec3, tbb::cache_aligned_allocator<glm::vec3>> v2;
+    
+    void add(const Triangle& triangle)
+    {
+        v0.push_back(triangle.v0);
+        v1.push_back(triangle.v1);
+        v2.push_back(triangle.v2);
+    }
+    
+    void clear()
+    {
+        v0.clear();
+        v1.clear();
+        v2.clear();
+    }
+    
+    size_t count() const { return v0.size(); }
+    
+    Triangle tri(const size_t i) const
+    {
+        return Triangle { v0[i], v1[i], v2[i] };
+    }
 };
 
 // --------------------------------------------------------------------------
