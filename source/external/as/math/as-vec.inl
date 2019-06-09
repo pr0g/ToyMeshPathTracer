@@ -12,9 +12,7 @@ const vec_t<T, n> operator+(const vec_t<T, n>& lhs, const vec_t<T, n>& rhs)
 template<>
 const vec3_t operator+(const vec3_t& lhs, const vec3_t& rhs)
 {
-    vec3_t result { lhs };
-    result += rhs;
-    return result;
+    return { lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z };
 }
 
 template<typename T, size_t n>
@@ -46,9 +44,7 @@ const vec_t<T, n> operator-(const vec_t<T, n>& lhs, const vec_t<T, n>& rhs)
 template<>
 const vec3_t operator-(const vec3_t& lhs, const vec3_t& rhs)
 {
-    vec3_t result { lhs };
-    result -= rhs;
-    return result;
+    return { lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z };
 }
 
 template<typename T, size_t n>
