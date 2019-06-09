@@ -234,7 +234,7 @@ int main(int argc, const char** argv)
 
     // load model file and initialize the scene
     as::vec3_t sceneMin, sceneMax;
-    if (!LoadScene(argv[4], sceneMin, sceneMax))
+    if (!LoadScene("/Users/tomhultonharrop/Documents/Projects/ray-tracing-interview/data/cube.obj", sceneMin, sceneMax))
         return 1;
 
     // place a camera: put it a bit outside scene bounds, looking at the center of it
