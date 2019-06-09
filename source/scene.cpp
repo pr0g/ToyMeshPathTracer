@@ -26,10 +26,11 @@ static void HitSceneInternal(
     {
         if (octree.Leaf())
         {
-            for (size_t i = 0; i < octree.m_triangles.count(); ++i)
+            for (int64_t i = 0; i < octree.m_triangles.count(); ++i)
             {
                 Hit hit;
-                if (RayIntersectTriangleImproved(ray, octree.m_triangles.tri(i), tMin, tMax, hit))
+                if (RayIntersectTrianglesImproved(
+                    ray, octree.m_triangles, i, tMin, tMax, hit))
                 {
                     if (hit.t < hitMinT)
                     {

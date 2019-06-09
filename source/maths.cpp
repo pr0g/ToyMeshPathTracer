@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+#include <xmmintrin.h>
+
 static uint32_t XorShift32(uint32_t& state)
 {
     uint32_t x = state;
@@ -372,6 +374,52 @@ bool RayIntersectTriangleImproved(
     {
         outHit.t = t;
         outHit.pos = (1.0f - u - v) * tri.v0 + u * tri.v1 + v * tri.v2;
+        outHit.normal = glm::normalize(glm::cross(edge1, edge2));
+        return true;
+    }
+
+    return false;
+}
+
+bool RayIntersectTrianglesImproved(
+    const Ray& r, const Triangles& tris, int64_t index, float tMin, float tMax, Hit& outHit)
+{
+    const glm::vec3 v0 = tris.v0[index];
+    const glm::vec3 v1 = tris.v1[index];
+    const glm::vec3 v2 = tris.v2[index];
+    
+    const glm::vec3 edge1 = v1 - v0;
+    const glm::vec3 edge2 = v2 - v0;
+
+    glm::vec3 pvec = glm::cross(r.dir, edge2);
+    const float det = glm::dot(edge1, pvec);
+
+    if (det > -Epsilon && det < Epsilon)
+    {
+        return false;
+    }
+
+    const float invDet = 1.0f / det;
+
+    const glm::vec3 tvec = r.orig - v0;
+    float u = glm::dot(tvec, pvec) * invDet;
+    if (u < 0.0f || u > 1.0f)
+    {
+        return false;
+    }
+
+    const glm::vec3 qvec = glm::cross(tvec, edge1);
+    float v = glm::dot(r.dir, qvec) * invDet;
+    if (v < 0.0f || u + v > 1.0f)
+    {
+        return false;
+    }
+
+    const float t = glm::dot(edge2, qvec) * invDet;
+    if (t >= tMin && t <= tMax)
+    {
+        outHit.t = t;
+        outHit.pos = (1.0f - u - v) * v0 + u * v1  + v * v2;
         outHit.normal = glm::normalize(glm::cross(edge1, edge2));
         return true;
     }

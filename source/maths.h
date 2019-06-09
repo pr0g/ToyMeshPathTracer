@@ -180,6 +180,11 @@ bool RayIntersectTriangle(
 bool RayIntersectTriangleImproved(
     const Ray& r, const Triangle& tri, float tMin, float tMax, Hit& outHit);
 
+// Same as above but accepting triangles in soa format
+bool RayIntersectTrianglesImproved(
+    const Ray& r, const Triangles& tris, int64_t index,
+    float tMin, float tMax, Hit& outHit);
+
 // Reference Fast 3D Triangle-Box Overlap Testing by Tomas Akenine-Moller
 // https://fileadmin.cs.lth.se/cs/Personal/Tomas_Akenine-Moller/pubs/tribox.pdf
 // http://fileadmin.cs.lth.se/cs/Personal/Tomas_Akenine-Moller/code/tribox3.txt
