@@ -9,8 +9,8 @@
 #include <stdint.h>
 #include <vector>
 
-#include "glm/glm.hpp"
-#include "glm/gtc/epsilon.hpp"
+#include "external/as/math/as-vec.hpp"
+#include "external/as/math/as-math-ops.hpp"
 
 #include "tbb/cache_aligned_allocator.h"
 
@@ -18,13 +18,13 @@
 
 inline float saturate(float v)
 {
-    return glm::clamp(v, 0.0f, 1.0f);
+    return as::clamp(v, 0.0f, 1.0f);
 }
 
-inline void AssertUnit(const glm::vec3& v)
+inline void AssertUnit(const as::vec3_t& v)
 {
     (void)v;
-    assert(fabsf(glm::length(v) - 1.0f) < 0.01f);
+    assert(fabsf(as::vec::length(v) - 1.0f) < 0.01f);
 }
 
 // --------------------------------------------------------------------------
@@ -34,12 +34,12 @@ inline void AssertUnit(const glm::vec3& v)
 struct Ray
 {
     Ray() {}
-    Ray(const glm::vec3& orig_, const glm::vec3& dir_) : orig(orig_), dir(dir_) { AssertUnit(dir); }
+    Ray(const as::vec3_t& orig_, const as::vec3_t& dir_) : orig(orig_), dir(dir_) { AssertUnit(dir); }
 
-    glm::vec3 pointAt(float t) const { return orig + dir * t; }
+    as::vec3_t pointAt(float t) const { return orig + dir * t; }
 
-    glm::vec3 orig;
-    glm::vec3 dir;
+    as::vec3_t orig;
+    as::vec3_t dir;
 };
 
 // --------------------------------------------------------------------------
@@ -48,8 +48,8 @@ struct Ray
 
 struct Hit
 {
-    glm::vec3 pos;
-    glm::vec3 normal;
+    as::vec3_t pos;
+    as::vec3_t normal;
     float t;
 };
 
@@ -58,14 +58,14 @@ struct Hit
 
 struct Triangle
 {
-    glm::vec3 v0, v1, v2;
+    as::vec3_t v0, v1, v2;
 };
 
 struct Triangles
 {
-    std::vector<glm::vec3, tbb::cache_aligned_allocator<glm::vec3>> v0;
-    std::vector<glm::vec3, tbb::cache_aligned_allocator<glm::vec3>> v1;
-    std::vector<glm::vec3, tbb::cache_aligned_allocator<glm::vec3>> v2;
+    std::vector<as::vec3_t, tbb::cache_aligned_allocator<as::vec3_t>> v0;
+    std::vector<as::vec3_t, tbb::cache_aligned_allocator<as::vec3_t>> v1;
+    std::vector<as::vec3_t, tbb::cache_aligned_allocator<as::vec3_t>> v2;
     
     void add(const Triangle& triangle)
     {
@@ -94,19 +94,19 @@ struct Triangles
 
 struct Aabb
 {
-    glm::vec3 min;
-    glm::vec3 max;
+    as::vec3_t min;
+    as::vec3_t max;
 
-    glm::vec3 center() const { return (min + max) * 0.5f; }
-    glm::vec3 dimensions() const { return max - min; }
+    as::vec3_t center() const { return (min + max) * 0.5f; }
+    as::vec3_t dimensions() const { return max - min; }
 };
 
 // --------------------------------------------------------------------------
 // random number generator utilities
 
 float RandomFloat01(uint32_t& state);
-glm::vec3 RandomInUnitDisk(uint32_t& state);
-glm::vec3 RandomUnitVector(uint32_t& state);
+as::vec3_t RandomInUnitDisk(uint32_t& state);
+as::vec3_t RandomUnitVector(uint32_t& state);
 
 // --------------------------------------------------------------------------
 // camera
@@ -117,28 +117,28 @@ struct Camera
 
     // vfov is top to bottom in degrees
     Camera(
-        const glm::vec3& lookFrom, const glm::vec3& lookAt,
-        const glm::vec3& vup, float vfov, float aspect,
+        const as::vec3_t& lookFrom, const as::vec3_t& lookAt,
+        const as::vec3_t& vup, float vfov, float aspect,
         float aperture, float focusDist);
 
     Ray GetRay(float s, float t, uint32_t& state) const
     {
-        glm::vec3 rd = lensRadius * RandomInUnitDisk(state);
-        glm::vec3 offset = u * rd.x + v * rd.y;
+        as::vec3_t rd = lensRadius * RandomInUnitDisk(state);
+        as::vec3_t offset = u * rd.x + v * rd.y;
         return Ray(
             origin + offset,
-            glm::normalize(
+            as::vec::normalize(
                 lowerLeftCorner +
                 s * horizontal +
                 t * vertical -
                 origin - offset));
     }
 
-    glm::vec3 origin;
-    glm::vec3 lowerLeftCorner;
-    glm::vec3 horizontal;
-    glm::vec3 vertical;
-    glm::vec3 u, v, w;
+    as::vec3_t origin;
+    as::vec3_t lowerLeftCorner;
+    as::vec3_t horizontal;
+    as::vec3_t vertical;
+    as::vec3_t u, v, w;
     float lensRadius;
 };
 
@@ -169,7 +169,7 @@ inline bool RayHitAabb(
 // Intersect ray R(t) = p + t*d against AABB a. When intersecting,
 // return intersection distance tmin and point q of intersection
 bool RayIntersectAabb(
-    const Ray& ray, const Aabb& aabb, float &tmin, glm::vec3& q);
+    const Ray& ray, const Aabb& aabb, float &tmin, as::vec3_t& q);
 
 // Checks if one triangle is hit by a ray segment.
 bool RayIntersectTriangle(
@@ -189,11 +189,11 @@ bool RayIntersectTrianglesImproved(
 // https://fileadmin.cs.lth.se/cs/Personal/Tomas_Akenine-Moller/pubs/tribox.pdf
 // http://fileadmin.cs.lth.se/cs/Personal/Tomas_Akenine-Moller/code/tribox3.txt
 bool PlaneIntersectAabb(
-    const glm::vec3& normal, const glm::vec3& vert, const glm::vec3& maxbox);
+    const as::vec3_t& normal, const as::vec3_t& vert, const as::vec3_t& maxbox);
 
 // Reference Fast 3D Triangle-Box Overlap Testing by Tomas Akenine-Moller
 // https://fileadmin.cs.lth.se/cs/Personal/Tomas_Akenine-Moller/pubs/tribox.pdf
 // http://fileadmin.cs.lth.se/cs/Personal/Tomas_Akenine-Moller/code/tribox3.txt
 bool TriangleIntersectAabb(
-    const glm::vec3& boxcenter, const glm::vec3& boxhalfsize,
+    const as::vec3_t& boxcenter, const as::vec3_t& boxhalfsize,
     const Triangle& triangle);

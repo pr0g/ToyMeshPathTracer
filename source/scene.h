@@ -19,7 +19,7 @@ struct Scene
     Scene(const Triangles& triangles);
     ~Scene();
 
-    void BuildOctree(const glm::vec3& min, const glm::vec3& max);
+    void BuildOctree(const as::vec3_t& min, const as::vec3_t& max);
     
     // Checks if the ray segment hits a scene. If any triangle is hit by the ray, this
     // function should return information about the closest one.

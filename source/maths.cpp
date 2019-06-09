@@ -19,28 +19,28 @@ float RandomFloat01(uint32_t& state)
     return (XorShift32(state) & 0xFFFFFF) / 16777216.0f;
 }
 
-glm::vec3 RandomInUnitDisk(uint32_t& state)
+as::vec3_t RandomInUnitDisk(uint32_t& state)
 {
-    glm::vec3 p;
+    as::vec3_t p;
     do
     {
-        p = 2.0f * glm::vec3(RandomFloat01(state),RandomFloat01(state),0.0f) - glm::vec3(1.0f,1.0f,0.0f);
-    } while (dot(p,p) >= 1.0f);
+        p = 2.0f * as::vec3_t(RandomFloat01(state),RandomFloat01(state),0.0f) - as::vec3_t(1.0f,1.0f,0.0f);
+    } while (as::vec::dot(p,p) >= 1.0f);
     return p;
 }
 
-glm::vec3 RandomUnitVector(uint32_t& state)
+as::vec3_t RandomUnitVector(uint32_t& state)
 {
     float z = RandomFloat01(state) * 2.0f - 1.0f;
     float a = RandomFloat01(state) * 2.0f * kPI;
     float r = sqrtf(1.0f - z * z);
     float x = r * cosf(a);
     float y = r * sinf(a);
-    return glm::vec3(x, y, z);
+    return as::vec3_t(x, y, z);
 }
 
 Camera::Camera(
-    const glm::vec3& lookFrom, const glm::vec3& lookAt, const glm::vec3& vup,
+    const as::vec3_t& lookFrom, const as::vec3_t& lookAt, const as::vec3_t& vup,
     float vfov, float aspect, float aperture, float focusDist)
 {
     lensRadius = aperture * 0.5f;
@@ -48,9 +48,9 @@ Camera::Camera(
     float halfHeight = tanf(theta * 0.5f);
     float halfWidth = aspect * halfHeight;
     origin = lookFrom;
-    w = glm::normalize(lookFrom - lookAt);
-    u = glm::normalize(cross(vup, w));
-    v = cross(w, u);
+    w = as::vec::normalize(lookFrom - lookAt);
+    u = as::vec::normalize(as::vec3::cross(vup, w));
+    v = as::vec3::cross(w, u);
     lowerLeftCorner =
         origin -
         halfWidth * focusDist * u -
@@ -61,7 +61,7 @@ Camera::Camera(
 }
 
 bool RayIntersectAabb(
-    const Ray& ray, const Aabb& aabb, float &tmin, glm::vec3& q)
+    const Ray& ray, const Aabb& aabb, float &tmin, as::vec3_t& q)
 {
     tmin = 0.0f;          // set to -FLT_MAX to get first hit on line
     float tmax = FLT_MAX; // set to max distance ray can travel (for segment)
@@ -92,8 +92,8 @@ bool RayIntersectAabb(
             }
 
             // Compute the intersection of slab intersections intervals
-            tmin = glm::max(tmin, t1);
-            tmax = glm::min(tmax, t2);
+            tmin = as::max(tmin, t1);
+            tmax = as::min(tmax, t2);
 
             // Exit with no collision as soon as slab intersection becomes empty
             if (tmin > tmax)
@@ -165,10 +165,10 @@ bool RayIntersectAabb(
   if(x2>max) max=x2;
 
 bool PlaneIntersectAabb(
-    const glm::vec3& normal, const glm::vec3& vert, const glm::vec3& maxbox)
+    const as::vec3_t& normal, const as::vec3_t& vert, const as::vec3_t& maxbox)
 {
     float v;
-    glm::vec3 vmin, vmax;
+    as::vec3_t vmin, vmax;
     for (int q = 0; q <= 2; q++)
     {
         v = vert[q];
@@ -185,12 +185,12 @@ bool PlaneIntersectAabb(
         }
     }
 
-    if (glm::dot(normal, vmin) > 0.0f)
+    if (as::vec::dot(normal, vmin) > 0.0f)
     {
         return false;
     }
 
-    if (glm::dot(normal, vmax) >= 0.0f)
+    if (as::vec::dot(normal, vmax) >= 0.0f)
     {
         return true;
     }
@@ -199,7 +199,7 @@ bool PlaneIntersectAabb(
 }
 
 bool TriangleIntersectAabb(
-    const glm::vec3& boxcenter, const glm::vec3& boxhalfsize, const Triangle& triangle)
+    const as::vec3_t& boxcenter, const as::vec3_t& boxhalfsize, const Triangle& triangle)
 {
     /*    use separating axis theorem to test overlap between triangle and box */
     /*    need to test for overlap in these directions: */
@@ -215,20 +215,20 @@ bool TriangleIntersectAabb(
     /* move everything so that the boxcenter is in (0,0,0) */
 
     //SUB(v0,triverts[0],boxcenter);
-    glm::vec3 v0 = triangle.v0 - boxcenter;
+    as::vec3_t v0 = triangle.v0 - boxcenter;
     //SUB(v1,triverts[1],boxcenter);
-    glm::vec3 v1 = triangle.v1 - boxcenter;
+    as::vec3_t v1 = triangle.v1 - boxcenter;
     //SUB(v2,triverts[2],boxcenter);
-    glm::vec3 v2 = triangle.v2 - boxcenter;
+    as::vec3_t v2 = triangle.v2 - boxcenter;
 
     /* compute triangle edges */
 
     //SUB(e0,v1,v0);      /* tri edge 0 */
-    glm::vec3 e0 = v1 - v0;
+    as::vec3_t e0 = v1 - v0;
     //SUB(e1,v2,v1);      /* tri edge 1 */
-    glm::vec3 e1 = v2 - v1;
+    as::vec3_t e1 = v2 - v1;
     //SUB(e2,v0,v2);      /* tri edge 2 */
-    glm::vec3 e2 = v0 - v2;
+    as::vec3_t e2 = v0 - v2;
 
     /* Bullet 3:  */
     /*  test the 9 tests first (this was faster) */
@@ -289,7 +289,7 @@ bool TriangleIntersectAabb(
    /*  compute plane equation of triangle: normal*x+d=0 */
 
     //CROSS(normal,e0,e1);
-    glm::vec3 normal = glm::cross(e0, e1);
+    as::vec3_t normal = as::vec3::cross(e0, e1);
     if (!PlaneIntersectAabb(normal, v0, boxhalfsize))
     {
         return false;
@@ -302,30 +302,30 @@ bool TriangleIntersectAabb(
 bool RayIntersectTriangle(
     const Ray& r, const Triangle& tri, float tMin, float tMax, Hit& outHit)
 {
-    glm::vec3 edge0 = tri.v1 - tri.v0;
-    glm::vec3 edge1 = tri.v2 - tri.v1;
-    glm::vec3 normal = normalize(cross(edge0, edge1));
-    float planeOffset = dot(tri.v0, normal);
+    as::vec3_t edge0 = tri.v1 - tri.v0;
+    as::vec3_t edge1 = tri.v2 - tri.v1;
+    as::vec3_t normal = as::vec::normalize(as::vec3::cross(edge0, edge1));
+    float planeOffset = as::vec::dot(tri.v0, normal);
 
-    glm::vec3 p0 = r.pointAt(tMin);
-    glm::vec3 p1 = r.pointAt(tMax);
+    as::vec3_t p0 = r.pointAt(tMin);
+    as::vec3_t p1 = r.pointAt(tMax);
 
-    float offset0 = dot(p0, normal);
-    float offset1 = dot(p1, normal);
+    float offset0 = as::vec::dot(p0, normal);
+    float offset1 = as::vec::dot(p1, normal);
 
     // does the ray segment between tMin & tMax intersect the triangle plane?
     if ((offset0 - planeOffset) * (offset1 - planeOffset) <= 0.0f)
     {
         float t = tMin + (tMax - tMin)*(planeOffset - offset0) / (offset1 - offset0);
-        glm::vec3 p = r.pointAt(t);
+        as::vec3_t p = r.pointAt(t);
 
-        glm::vec3 c0 = cross(edge0, p - tri.v0);
-        glm::vec3 c1 = cross(edge1, p - tri.v1);
-        if (dot(c0, c1) >= 0.f)
+        as::vec3_t c0 = as::vec3::cross(edge0, p - tri.v0);
+        as::vec3_t c1 = as::vec3::cross(edge1, p - tri.v1);
+        if (as::vec::dot(c0, c1) >= 0.f)
         {
             auto edge2 = tri.v0 - tri.v2;
-            auto c2 = cross(edge2, p - tri.v2);
-            if (dot(c1, c2) >= 0.0f)
+            auto c2 = as::vec3::cross(edge2, p - tri.v2);
+            if (as::vec::dot(c1, c2) >= 0.0f)
             {
                 outHit.t = t;
                 outHit.pos = p;
@@ -342,11 +342,11 @@ constexpr float Epsilon = 1e-5f;
 bool RayIntersectTriangleImproved(
     const Ray& r, const Triangle& tri, float tMin, float tMax, Hit& outHit)
 {
-    const glm::vec3 edge1 = tri.v1 - tri.v0;
-    const glm::vec3 edge2 = tri.v2 - tri.v0;
+    const as::vec3_t edge1 = tri.v1 - tri.v0;
+    const as::vec3_t edge2 = tri.v2 - tri.v0;
 
-    glm::vec3 pvec = glm::cross(r.dir, edge2);
-    const float det = glm::dot(edge1, pvec);
+    as::vec3_t pvec = as::vec3::cross(r.dir, edge2);
+    const float det = as::vec::dot(edge1, pvec);
 
     if (det > -Epsilon && det < Epsilon)
     {
@@ -355,26 +355,26 @@ bool RayIntersectTriangleImproved(
 
     const float invDet = 1.0f / det;
 
-    const glm::vec3 tvec = r.orig - tri.v0;
-    float u = glm::dot(tvec, pvec) * invDet;
+    const as::vec3_t tvec = r.orig - tri.v0;
+    float u = as::vec::dot(tvec, pvec) * invDet;
     if (u < 0.0f || u > 1.0f)
     {
         return false;
     }
 
-    const glm::vec3 qvec = glm::cross(tvec, edge1);
-    float v = glm::dot(r.dir, qvec) * invDet;
+    const as::vec3_t qvec = as::vec3::cross(tvec, edge1);
+    float v = as::vec::dot(r.dir, qvec) * invDet;
     if (v < 0.0f || u + v > 1.0f)
     {
         return false;
     }
 
-    const float t = glm::dot(edge2, qvec) * invDet;
+    const float t = as::vec::dot(edge2, qvec) * invDet;
     if (t >= tMin && t <= tMax)
     {
         outHit.t = t;
         outHit.pos = (1.0f - u - v) * tri.v0 + u * tri.v1 + v * tri.v2;
-        outHit.normal = glm::normalize(glm::cross(edge1, edge2));
+        outHit.normal = as::vec::normalize(as::vec3::cross(edge1, edge2));
         return true;
     }
 
@@ -384,15 +384,15 @@ bool RayIntersectTriangleImproved(
 bool RayIntersectTrianglesImproved(
     const Ray& r, const Triangles& tris, int64_t index, float tMin, float tMax, Hit& outHit)
 {
-    const glm::vec3 v0 = tris.v0[index];
-    const glm::vec3 v1 = tris.v1[index];
-    const glm::vec3 v2 = tris.v2[index];
+    const as::vec3_t v0 = tris.v0[index];
+    const as::vec3_t v1 = tris.v1[index];
+    const as::vec3_t v2 = tris.v2[index];
     
-    const glm::vec3 edge1 = v1 - v0;
-    const glm::vec3 edge2 = v2 - v0;
+    const as::vec3_t edge1 = v1 - v0;
+    const as::vec3_t edge2 = v2 - v0;
 
-    glm::vec3 pvec = glm::cross(r.dir, edge2);
-    const float det = glm::dot(edge1, pvec);
+    as::vec3_t pvec = as::vec3::cross(r.dir, edge2);
+    const float det = as::vec::dot(edge1, pvec);
 
     if (det > -Epsilon && det < Epsilon)
     {
@@ -401,26 +401,26 @@ bool RayIntersectTrianglesImproved(
 
     const float invDet = 1.0f / det;
 
-    const glm::vec3 tvec = r.orig - v0;
-    float u = glm::dot(tvec, pvec) * invDet;
+    const as::vec3_t tvec = r.orig - v0;
+    float u = as::vec::dot(tvec, pvec) * invDet;
     if (u < 0.0f || u > 1.0f)
     {
         return false;
     }
 
-    const glm::vec3 qvec = glm::cross(tvec, edge1);
-    float v = glm::dot(r.dir, qvec) * invDet;
+    const as::vec3_t qvec = as::vec3::cross(tvec, edge1);
+    float v = as::vec::dot(r.dir, qvec) * invDet;
     if (v < 0.0f || u + v > 1.0f)
     {
         return false;
     }
 
-    const float t = glm::dot(edge2, qvec) * invDet;
+    const float t = as::vec::dot(edge2, qvec) * invDet;
     if (t >= tMin && t <= tMax)
     {
         outHit.t = t;
         outHit.pos = (1.0f - u - v) * v0 + u * v1  + v * v2;
-        outHit.normal = glm::normalize(glm::cross(edge1, edge2));
+        outHit.normal = as::vec::normalize(as::vec3::cross(edge1, edge2));
         return true;
     }
 

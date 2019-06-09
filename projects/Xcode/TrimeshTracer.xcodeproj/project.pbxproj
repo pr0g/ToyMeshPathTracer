@@ -27,6 +27,7 @@
 
 /* Begin PBXFileReference section */
 		298984FF2291DE470061C57A /* glm */ = {isa = PBXFileReference; lastKnownFileType = folder; path = glm; sourceTree = "<group>"; };
+		298C086C22AD993900B7A644 /* as */ = {isa = PBXFileReference; lastKnownFileType = folder; path = as; sourceTree = "<group>"; };
 		29FA26A92288713F0066599C /* libtbbmalloc_proxy_debug.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libtbbmalloc_proxy_debug.dylib; path = "../../third-party/tbb/lib/libtbbmalloc_proxy_debug.dylib"; sourceTree = "<group>"; };
 		29FA26AA2288713F0066599C /* libtbb_debug.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libtbb_debug.dylib; path = "../../third-party/tbb/lib/libtbb_debug.dylib"; sourceTree = "<group>"; };
 		29FA26AB2288713F0066599C /* libtbbmalloc.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libtbbmalloc.dylib; path = "../../third-party/tbb/lib/libtbbmalloc.dylib"; sourceTree = "<group>"; };
@@ -107,6 +108,7 @@
 		2BBF7DCD22492D5700FCABB2 /* external */ = {
 			isa = PBXGroup;
 			children = (
+				298C086C22AD993900B7A644 /* as */,
 				298984FF2291DE470061C57A /* glm */,
 				2BBF7DE2224A6E8D00FCABB2 /* objparser.cpp */,
 				2BBF7DE1224A6E8D00FCABB2 /* objparser.h */,
@@ -298,10 +300,15 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				GCC_PREPROCESSOR_DEFINITIONS = "TBB_USE_DEBUG=0";
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"TBB_USE_DEBUG=0",
+					AS_PRECISION_FLOAT,
+					AS_COL_MAJOR,
+				);
 				HEADER_SEARCH_PATHS = (
 					/Users/tomhultonharrop/Downloads/tbb2019_20190410oss_mac/tbb2019_20190410oss/include,
 					../../source/external,
+					../../source/external/as,
 				);
 				LD_RUNPATH_SEARCH_PATHS = /Users/tomhultonharrop/Downloads/tbb2019_20190410oss_mac/tbb2019_20190410oss/lib;
 				LIBRARY_SEARCH_PATHS = /Users/tomhultonharrop/Downloads/tbb2019_20190410oss_mac/tbb2019_20190410oss/lib;
@@ -317,10 +324,15 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				GCC_PREPROCESSOR_DEFINITIONS = "TBB_USE_DEBUG=0";
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"TBB_USE_DEBUG=0",
+					AS_PRECISION_FLOAT,
+					AS_COL_MAJOR,
+				);
 				HEADER_SEARCH_PATHS = (
 					/Users/tomhultonharrop/Downloads/tbb2019_20190410oss_mac/tbb2019_20190410oss/include,
 					../../source/external,
+					../../source/external/as,
 				);
 				LD_RUNPATH_SEARCH_PATHS = /Users/tomhultonharrop/Downloads/tbb2019_20190410oss_mac/tbb2019_20190410oss/lib;
 				LIBRARY_SEARCH_PATHS = /Users/tomhultonharrop/Downloads/tbb2019_20190410oss_mac/tbb2019_20190410oss/lib;

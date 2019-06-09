@@ -33,8 +33,8 @@ const float kMaxT = 1.0e7f;
 const int kMaxDepth = 10;
 
 // we have one hardcoded directional light, with this direction and color
-static const glm::vec3 kLightDir = normalize(glm::vec3(-0.7f,1.0f,0.5f));
-static const glm::vec3 kLightColor = glm::vec3(0.7f,0.6f,0.5f);
+static const as::vec3_t kLightDir = as::vec::normalize(as::vec3_t(-0.7f,1.0f,0.5f));
+static const as::vec3_t kLightColor = as::vec3_t(0.7f,0.6f,0.5f);
 
 // when a ray "r" has just hit a surface at point "hit", decide what to do about it:
 // in our very simple case, we assume the surface is perfectly diffuse, so we'll return:
@@ -42,15 +42,15 @@ static const glm::vec3 kLightColor = glm::vec3(0.7f,0.6f,0.5f);
 // - new random ray for the next light bounce in "scattered"
 // - illumination from the directional light in "outLightE"
 static Ray Scatter(
-    const Ray& r, const Scene& scene, const Hit& hit, glm::vec3& outAttenuation,
-    glm::vec3& outLightE, uint32_t& rngState, int& inoutRayCount)
+    const Ray& r, const Scene& scene, const Hit& hit, as::vec3_t& outAttenuation,
+    as::vec3_t& outLightE, uint32_t& rngState, int& inoutRayCount)
 {
-    outLightE = glm::vec3 { 0.0f };
+    outLightE = as::vec3_t { 0.0f };
 
     // model a perfectly diffuse material:
 
     // make color slightly based on surface normals
-    glm::vec3 albedo = glm::vec3(0.7f);
+    as::vec3_t albedo = as::vec3_t(0.7f);
     outAttenuation = albedo;
 
     // explicit directional light by shooting a shadow ray
@@ -61,31 +61,31 @@ static Ray Scatter(
     {
         // ray towards the light did not hit anything in the scene, so
         // that means we are not in shadow: compute illumination from it
-        glm::vec3 rdir = r.dir;
+        as::vec3_t rdir = r.dir;
         AssertUnit(rdir);
-        glm::vec3 nl = dot(hit.normal, rdir) < 0 ? hit.normal : -hit.normal;
-        outLightE += albedo * kLightColor * (fmax(0.0f, dot(kLightDir, nl)));
+        as::vec3_t nl = as::vec::dot(hit.normal, rdir) < 0 ? hit.normal : -hit.normal;
+        outLightE += albedo * kLightColor * (fmax(0.0f, as::vec::dot(kLightDir, nl)));
     }
 
     // random point on unit sphere that is tangent to the hit point
-    glm::vec3 target = hit.pos + hit.normal + RandomUnitVector(rngState);
-    return Ray(hit.pos, normalize(target - hit.pos));
+    as::vec3_t target = hit.pos + hit.normal + RandomUnitVector(rngState);
+    return Ray(hit.pos, as::vec::normalize(target - hit.pos));
 }
 
 struct IntermediateScatterResult
 {
-    glm::vec3 light;
-    glm::vec3 attenuation;
+    as::vec3_t light;
+    as::vec3_t attenuation;
 };
 
 // trace a ray into the scene, and return the final color for it
-static glm::vec3 Trace(
+static as::vec3_t Trace(
     Ray ray, const Scene& scene, uint32_t& rngState, int& inoutRayCount)
 {
     thread_local IntermediateScatterResult scatteredResults[kMaxDepth];
 
     int depth = 0;
-    glm::vec3 color { 0.0f };
+    as::vec3_t color { 0.0f };
     while (depth < kMaxDepth)
     {
         ++inoutRayCount;
@@ -104,7 +104,7 @@ static glm::vec3 Trace(
         {
             // ray does not hit anything: return illumination from the sky (just a simple gradient really)
             float t = 0.5f * (ray.dir.y + 1.0f);
-            color = ((1.0f - t) * glm::vec3(1.0f) + t * glm::vec3(0.5f, 0.7f, 1.0f)) * 0.5f;
+            color = ((1.0f - t) * as::vec3_t(1.0f) + t * as::vec3_t(0.5f, 0.7f, 1.0f)) * 0.5f;
             break;
         }
     }
@@ -120,7 +120,7 @@ static glm::vec3 Trace(
 
 // load scene from an .OBJ file
 static std::unique_ptr<Scene> LoadScene(
-    const char* dataFile, glm::vec3& outBoundsMin, glm::vec3& outBoundsMax)
+    const char* dataFile, as::vec3_t& outBoundsMin, as::vec3_t& outBoundsMax)
 {
     ObjFile objFile;
     if (!objParseFile(objFile, dataFile))
@@ -129,8 +129,8 @@ static std::unique_ptr<Scene> LoadScene(
         return nullptr;
     }
 
-    outBoundsMin = glm::vec3(+1.0e6f, +1.0e6f, +1.0e6f);
-    outBoundsMax = glm::vec3(-1.0e6f, -1.0e6f, -1.0e6f);
+    outBoundsMin = as::vec3_t(+1.0e6f, +1.0e6f, +1.0e6f);
+    outBoundsMax = as::vec3_t(-1.0e6f, -1.0e6f, -1.0e6f);
 
     int objTriCount = int(objFile.f_size / 9);
     Triangles tris;
@@ -143,27 +143,27 @@ static std::unique_ptr<Scene> LoadScene(
         int idx0 = objFile.f[i * 9 + 0] * 3;
         int idx1 = objFile.f[i * 9 + 3] * 3;
         int idx2 = objFile.f[i * 9 + 6] * 3;
-        glm::vec3 v0 = glm::vec3(objFile.v[idx0 + 0], objFile.v[idx0 + 1], objFile.v[idx0 + 2]);
-        glm::vec3 v1 = glm::vec3(objFile.v[idx1 + 0], objFile.v[idx1 + 1], objFile.v[idx1 + 2]);
-        glm::vec3 v2 = glm::vec3(objFile.v[idx2 + 0], objFile.v[idx2 + 1], objFile.v[idx2 + 2]);
+        as::vec3_t v0 = as::vec3_t(objFile.v[idx0 + 0], objFile.v[idx0 + 1], objFile.v[idx0 + 2]);
+        as::vec3_t v1 = as::vec3_t(objFile.v[idx1 + 0], objFile.v[idx1 + 1], objFile.v[idx1 + 2]);
+        as::vec3_t v2 = as::vec3_t(objFile.v[idx2 + 0], objFile.v[idx2 + 1], objFile.v[idx2 + 2]);
         tris.v0.push_back(v0);
         tris.v1.push_back(v1);
         tris.v2.push_back(v2);
-        outBoundsMin = min(outBoundsMin, v0); outBoundsMax = max(outBoundsMax, v0);
-        outBoundsMin = min(outBoundsMin, v1); outBoundsMax = max(outBoundsMax, v1);
-        outBoundsMin = min(outBoundsMin, v2); outBoundsMax = max(outBoundsMax, v2);
+        outBoundsMin = as::vec::min(outBoundsMin, v0); outBoundsMax = as::vec::max(outBoundsMax, v0);
+        outBoundsMin = as::vec::min(outBoundsMin, v1); outBoundsMax = as::vec::max(outBoundsMax, v1);
+        outBoundsMin = as::vec::min(outBoundsMin, v2); outBoundsMax = as::vec::max(outBoundsMax, v2);
     }
 
     // add two triangles that are right "under the scene" and covering larger area than the scene
     // itself, to serve as a "floor"
-    glm::vec3 size = outBoundsMax - outBoundsMin;
-    glm::vec3 extra = size * 0.7f;
-    tris.v0.push_back(glm::vec3(outBoundsMin.x-extra.x, outBoundsMin.y, outBoundsMin.z-extra.z));
-    tris.v1.push_back(glm::vec3(outBoundsMin.x-extra.x, outBoundsMin.y, outBoundsMax.z+extra.z));
-    tris.v2.push_back(glm::vec3(outBoundsMax.x+extra.x, outBoundsMin.y, outBoundsMin.z-extra.z));
-    tris.v0.push_back(glm::vec3(outBoundsMin.x-extra.x, outBoundsMin.y, outBoundsMax.z+extra.z));
-    tris.v1.push_back(glm::vec3(outBoundsMax.x+extra.x, outBoundsMin.y, outBoundsMax.z+extra.z));
-    tris.v2.push_back(glm::vec3(outBoundsMax.x+extra.x, outBoundsMin.y, outBoundsMin.z-extra.z));
+    as::vec3_t size = outBoundsMax - outBoundsMin;
+    as::vec3_t extra = size * 0.7f;
+    tris.v0.push_back(as::vec3_t(outBoundsMin.x-extra.x, outBoundsMin.y, outBoundsMin.z-extra.z));
+    tris.v1.push_back(as::vec3_t(outBoundsMin.x-extra.x, outBoundsMin.y, outBoundsMax.z+extra.z));
+    tris.v2.push_back(as::vec3_t(outBoundsMax.x+extra.x, outBoundsMin.y, outBoundsMin.z-extra.z));
+    tris.v0.push_back(as::vec3_t(outBoundsMin.x-extra.x, outBoundsMin.y, outBoundsMax.z+extra.z));
+    tris.v1.push_back(as::vec3_t(outBoundsMax.x+extra.x, outBoundsMin.y, outBoundsMax.z+extra.z));
+    tris.v2.push_back(as::vec3_t(outBoundsMax.x+extra.x, outBoundsMin.y, outBoundsMin.z-extra.z));
 
     uint64_t t0 = stm_now();
     std::unique_ptr<Scene> scene = std::make_unique<Scene>(tris);
@@ -207,7 +207,7 @@ public:
             uint32_t rngState = static_cast<uint32_t>(y) * 9781 + 1;
             for (int64_t x = 0; x < data.screenWidth; ++x)
             {
-                glm::vec3 col { 0.0f };
+                as::vec3_t col { 0.0f };
                 // we'll trace N slightly jittered rays for each pixel, to get anti-aliasing, loop over them here
                 for (int64_t s = 0; s < data.samplesPerPixel; s++)
                 {
@@ -282,12 +282,12 @@ int main(int argc, const char** argv)
         return 1;
     }
 
-    // absolute path needed for instruments in xcode
+    // absolute path needed for instruments i	n xcode
     // const char* sceneFile =
     //     "/Users/tomhultonharrop/Documents/Projects/ray-tracing-interview/data/teapot.obj";
     
     // load model file and initialize the scene
-    glm::vec3 sceneMin, sceneMax;
+    as::vec3_t sceneMin, sceneMax;
     std::unique_ptr<Scene> scene = LoadScene(argv[4], sceneMin, sceneMax);
 
     if (!scene)
@@ -296,17 +296,17 @@ int main(int argc, const char** argv)
     }
 
     // place a camera: put it a bit outside scene bounds, looking at the center of it
-    glm::vec3 sceneSize = sceneMax - sceneMin;
-    glm::vec3 extra = sceneSize * 0.7f;
-    glm::vec3 sceneCenter = (sceneMin + sceneMax) * 0.5f;
-    glm::vec3 lookfrom = sceneCenter + sceneSize * glm::vec3(0.3f,0.6f,1.2f);
+    as::vec3_t sceneSize = sceneMax - sceneMin;
+    as::vec3_t extra = sceneSize * 0.7f;
+    as::vec3_t sceneCenter = (sceneMin + sceneMax) * 0.5f;
+    as::vec3_t lookfrom = sceneCenter + sceneSize * as::vec3_t(0.3f,0.6f,1.2f);
     if (strstr(argv[4], "sponza.obj") != nullptr) // sponza looks bad when viewed from outside; hardcode camera position
-        lookfrom = glm::vec3(-5.96f, 4.08f, -1.22f);
-    glm::vec3 lookat = sceneCenter + sceneSize * glm::vec3(0.0f, -0.1f, 0.0f);
-    const float distToFocus = length(lookfrom - lookat);
+        lookfrom = as::vec3_t(-5.96f, 4.08f, -1.22f);
+    as::vec3_t lookat = sceneCenter + sceneSize * as::vec3_t(0.0f, -0.1f, 0.0f);
+    const float distToFocus = as::vec::length(lookfrom - lookat);
     const float aperture = 0.03f;
     auto camera = Camera(
-        lookfrom, lookat, glm::vec3(0.0f, 1.0f, 0.0f), 60.0f,
+        lookfrom, lookat, as::vec3_t(0.0f, 1.0f, 0.0f), 60.0f,
         float(screenWidth) / float(screenHeight), aperture, distToFocus);
 
     scene->BuildOctree(sceneMin - extra, sceneMax + extra);

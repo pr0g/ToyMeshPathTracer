@@ -61,7 +61,7 @@ Scene::Scene(const Triangles& triangles)
 
 Scene::~Scene() = default;
 
-void Scene::BuildOctree(const glm::vec3& min, const glm::vec3& max)
+void Scene::BuildOctree(const as::vec3_t& min, const as::vec3_t& max)
 {
     m_octree = std::make_unique<OctreeNode>();
     
@@ -79,7 +79,7 @@ int Scene::HitScene(
     float hitMinT = tMax;
 
     Ray invR = ray;
-    invR.dir = glm::vec3(1.0f) / ray.dir;
+    invR.dir = as::vec3_t(1.0f) / ray.dir;
     HitSceneInternal(ray, invR, *m_octree, tMin, tMax, outHit, hitId, hitMinT);
 
     return hitId;
@@ -95,7 +95,7 @@ void OctreeNode::Subdivide(int depth)
 
 void OctreeNode::InternalDivide(int depth)
 {
-    const glm::vec3 halfDimensions = m_aabb.dimensions() * 0.5f;
+    const as::vec3_t halfDimensions = m_aabb.dimensions() * 0.5f;
 
     // allocate children
     m_children.resize(8);
@@ -108,22 +108,22 @@ void OctreeNode::InternalDivide(int depth)
     m_children[0]->m_aabb.min = m_aabb.min;
     m_children[0]->m_aabb.max = m_children[0]->m_aabb.min + halfDimensions;
 
-    m_children[1]->m_aabb.min = m_aabb.min + glm::vec3(halfDimensions.x, 0.0f, 0.0f);
+    m_children[1]->m_aabb.min = m_aabb.min + as::vec3_t(halfDimensions.x, 0.0f, 0.0f);
     m_children[1]->m_aabb.max = m_children[1]->m_aabb.min + halfDimensions;
 
-    m_children[2]->m_aabb.min = m_aabb.min + glm::vec3(0.0f, 0.0f, halfDimensions.z);
+    m_children[2]->m_aabb.min = m_aabb.min + as::vec3_t(0.0f, 0.0f, halfDimensions.z);
     m_children[2]->m_aabb.max = m_children[2]->m_aabb.min + halfDimensions;
 
-    m_children[3]->m_aabb.min = m_aabb.min + glm::vec3(halfDimensions.x, 0.0f, halfDimensions.z);
+    m_children[3]->m_aabb.min = m_aabb.min + as::vec3_t(halfDimensions.x, 0.0f, halfDimensions.z);
     m_children[3]->m_aabb.max = m_children[3]->m_aabb.min + halfDimensions;
 
-    m_children[4]->m_aabb.min = m_aabb.min + glm::vec3(0.0f, halfDimensions.y, 0.0f);
+    m_children[4]->m_aabb.min = m_aabb.min + as::vec3_t(0.0f, halfDimensions.y, 0.0f);
     m_children[4]->m_aabb.max = m_children[4]->m_aabb.min + halfDimensions;
 
-    m_children[5]->m_aabb.min = m_aabb.min + glm::vec3(halfDimensions.x, halfDimensions.y, 0.0f);
+    m_children[5]->m_aabb.min = m_aabb.min + as::vec3_t(halfDimensions.x, halfDimensions.y, 0.0f);
     m_children[5]->m_aabb.max = m_children[5]->m_aabb.min + halfDimensions;
 
-    m_children[6]->m_aabb.min = m_aabb.min + glm::vec3(0.0f, halfDimensions.y, halfDimensions.z);
+    m_children[6]->m_aabb.min = m_aabb.min + as::vec3_t(0.0f, halfDimensions.y, halfDimensions.z);
     m_children[6]->m_aabb.max = m_children[6]->m_aabb.min + halfDimensions;
 
     m_children[7]->m_aabb.min = m_aabb.min + halfDimensions;
