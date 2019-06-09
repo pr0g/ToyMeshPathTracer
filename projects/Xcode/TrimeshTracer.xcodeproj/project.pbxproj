@@ -309,7 +309,10 @@
 				);
 				LIBRARY_SEARCH_PATHS = /usr/local/Cellar/tbb/2019_U5_1/lib;
 				OTHER_CFLAGS = "";
-				OTHER_CPLUSPLUSFLAGS = "$(OTHER_CFLAGS)";
+				OTHER_CPLUSPLUSFLAGS = (
+					"-ffast-math",
+					"$(OTHER_CFLAGS)",
+				);
 				OTHER_LDFLAGS = (
 					"-ltbb",
 					"-ltbbmalloc",
@@ -333,7 +336,10 @@
 				);
 				LIBRARY_SEARCH_PATHS = /usr/local/Cellar/tbb/2019_U5_1/lib;
 				OTHER_CFLAGS = "";
-				OTHER_CPLUSPLUSFLAGS = "$(OTHER_CFLAGS)";
+				OTHER_CPLUSPLUSFLAGS = (
+					"-ffast-math",
+					"$(OTHER_CFLAGS)",
+				);
 				OTHER_LDFLAGS = (
 					"-ltbb",
 					"-ltbbmalloc",

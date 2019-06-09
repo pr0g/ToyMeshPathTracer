@@ -261,7 +261,7 @@ int main(int argc, const char** argv)
 
     // load model file and initialize the scene
     as::vec3_t sceneMin, sceneMax;
-    if (!LoadScene("/Users/tomhultonharrop/Documents/Projects/ray-tracing-interview/data/suzanne.obj", sceneMin, sceneMax))
+    if (!LoadScene("/Users/tomhultonharrop/Documents/Projects/ray-tracing-interview/data/cube.obj", sceneMin, sceneMax))
         return 1;
 
     // place a camera: put it a bit outside scene bounds, looking at the center of it
@@ -291,7 +291,7 @@ int main(int argc, const char** argv)
     data.camera = &camera;
     data.rayCount = 0;
 	
-	const uint32_t grainSize = 10000; // default grain size
+	const uint32_t grainSize = 1000; // default grain size
 	tbb::parallel_for(tbb::blocked_range2d<uint32_t>(
 		0, screenHeight, grainSize, 0, screenWidth, grainSize), TraceImageBody(&data));
 
