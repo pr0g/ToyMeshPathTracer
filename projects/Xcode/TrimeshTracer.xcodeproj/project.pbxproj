@@ -26,6 +26,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		298C086B22AD6D9A00B7A644 /* as */ = {isa = PBXFileReference; lastKnownFileType = folder; path = as; sourceTree = "<group>"; };
 		2BBF7DB222492CB600FCABB2 /* TrimeshTracer */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = TrimeshTracer; sourceTree = BUILT_PRODUCTS_DIR; };
 		2BBF7DC522492D4500FCABB2 /* scene.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = scene.cpp; sourceTree = "<group>"; };
 		2BBF7DC622492D4500FCABB2 /* maths.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = maths.h; sourceTree = "<group>"; };
@@ -82,6 +83,7 @@
 		2BBF7DCD22492D5700FCABB2 /* external */ = {
 			isa = PBXGroup;
 			children = (
+				298C086B22AD6D9A00B7A644 /* as */,
 				2BBF7DE2224A6E8D00FCABB2 /* objparser.cpp */,
 				2BBF7DE1224A6E8D00FCABB2 /* objparser.h */,
 				2BBF7DE3224A6E8D00FCABB2 /* sokol_time.h */,
