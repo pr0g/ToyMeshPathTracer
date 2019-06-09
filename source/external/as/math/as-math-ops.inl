@@ -48,6 +48,12 @@ T dot(const vec_t<T, n>& lhs, const vec_t<T, n>& rhs)
     return result;
 }
 
+template<>
+real_t dot(const vec3_t& lhs, const vec3_t& rhs)
+{
+    return lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z;
+}
+
 template<typename T, size_t n>
 T length_squared(const vec_t<T, n>& vec)
 {
@@ -58,10 +64,16 @@ T length_squared(const vec_t<T, n>& vec)
     return result;
 }
 
+template<>
+inline real_t length_squared(const vec3_t& vec)
+{
+    return vec.x * vec.x + vec.y * vec.y + vec.z * vec.z;
+}
+
 template<typename T, size_t n>
 T length(const vec_t<T, n>& vec)
 {
-    return sqrt(length_squared(vec));
+    return sqrtr(length_squared(vec));
 }
 
 template<typename T, size_t n>

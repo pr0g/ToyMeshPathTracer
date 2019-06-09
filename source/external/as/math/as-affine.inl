@@ -13,4 +13,4 @@ vec3_t operator*(const vec3_t& vec, const affine_t& transform)
 }
 #endif // AS_COL_MAJOR ? AS_ROW_MAJOR
 
-}
+} // namespace as

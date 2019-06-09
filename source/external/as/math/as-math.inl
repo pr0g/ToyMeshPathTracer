@@ -64,4 +64,4 @@ inline bool equal(
     return diff <= largest * max_rel_diff;
 }
 
-}
+} // namespace as

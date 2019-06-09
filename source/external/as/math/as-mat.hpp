@@ -41,7 +41,7 @@ struct mat_t
 };
 
 template <typename T, size_t r, size_t c>
-inline mat_t<T, r, c> operator*(const mat_t<T, r, c>& lhs, const mat_t<T, r, c>& rhs);
+inline const mat_t<T, r, c> operator*(const mat_t<T, r, c>& lhs, const mat_t<T, r, c>& rhs);
 
 template<typename T, size_t r, size_t c, size_t n>
 #if defined AS_ROW_MAJOR
