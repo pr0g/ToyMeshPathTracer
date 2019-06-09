@@ -67,7 +67,7 @@ T length_squared(const vec_t<T, n>& vec)
 template<>
 inline real_t length_squared(const vec3_t& vec)
 {
-    return vec.x * vec.x + vec.y * vec.y + vec.z * vec.z;
+    return dot(vec, vec);
 }
 
 template<typename T, size_t n>
