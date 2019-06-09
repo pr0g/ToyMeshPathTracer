@@ -274,6 +274,14 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					AS_PRECISION_FLOAT,
+					AS_COL_MAJOR,
+				);
+				HEADER_SEARCH_PATHS = (
+					../../source/external/as,
+					../../source/external,
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -282,6 +290,14 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					AS_PRECISION_FLOAT,
+					AS_COL_MAJOR,
+				);
+				HEADER_SEARCH_PATHS = (
+					../../source/external/as,
+					../../source/external,
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;

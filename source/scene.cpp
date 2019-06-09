@@ -5,30 +5,30 @@
 // Checks if one triangle is hit by a ray segment.
 static bool HitTriangle(const Ray& r, const Triangle& tri, float tMin, float tMax, Hit& outHit)
 {
-    float3 edge0 = tri.v1 - tri.v0;
-    float3 edge1 = tri.v2 - tri.v1;
-    float3 normal = normalize(cross(edge0, edge1));
-    float planeOffset = dot(tri.v0, normal);
+    as::vec3_t edge0 = tri.v1 - tri.v0;
+    as::vec3_t edge1 = tri.v2 - tri.v1;
+    as::vec3_t normal = as::vec::normalize(as::vec3::cross(edge0, edge1));
+    float planeOffset = as::vec::dot(tri.v0, normal);
 
-    float3 p0 = r.pointAt(tMin);
-    float3 p1 = r.pointAt(tMax);
+    as::vec3_t p0 = r.pointAt(tMin);
+    as::vec3_t p1 = r.pointAt(tMax);
 
-    float offset0 = dot(p0, normal);
-    float offset1 = dot(p1, normal);
+    float offset0 = as::vec::dot(p0, normal);
+    float offset1 = as::vec::dot(p1, normal);
 
     // does the ray segment between tMin & tMax intersect the triangle plane?
     if ((offset0 - planeOffset) * (offset1 - planeOffset) <= 0.0f)
     {
         float t = tMin + (tMax - tMin)*(planeOffset - offset0) / (offset1 - offset0);
-        float3 p = r.pointAt(t);
+        as::vec3_t p = r.pointAt(t);
 
-        float3 c0 = cross(edge0, p - tri.v0);
-        float3 c1 = cross(edge1, p - tri.v1);
-        if (dot(c0, c1) >= 0.f)
+        as::vec3_t c0 = as::vec3::cross(edge0, p - tri.v0);
+        as::vec3_t c1 = as::vec3::cross(edge1, p - tri.v1);
+        if (as::vec::dot(c0, c1) >= 0.f)
         {
             auto edge2 = tri.v0 - tri.v2;
-            auto c2 = cross(edge2, p - tri.v2);
-            if (dot(c1, c2) >= 0.f)
+            auto c2 = as::vec3::cross(edge2, p - tri.v2);
+            if (as::vec::dot(c1, c2) >= 0.f)
             {
                 outHit.t = t;
                 outHit.pos = p;

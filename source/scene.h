@@ -8,7 +8,7 @@
 // One triangle: just three vertex positions.
 struct Triangle
 {
-    float3 v0, v1, v2;
+    as::vec3_t v0, v1, v2;
 };
 
 
